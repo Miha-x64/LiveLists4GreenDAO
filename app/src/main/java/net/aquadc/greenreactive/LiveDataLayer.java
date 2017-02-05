@@ -30,8 +30,8 @@ public interface LiveDataLayer<T extends LiveDataLayer.WithId, QUERY> {
         /**
          * There was a structural change: at least one item was inserted or removed.
          * @param newList           list containing new items
-         * @param newIds            IDs of changed items
-         * @param changedItemIds    IDs of all items (to detect structural changes)
+         * @param newIds            IDs of all items (to detect structural changes)
+         * @param changedItemIds    IDs of changed items
          */
         void onStructuralChange(List<T> newList, long[] newIds, Set<Long> changedItemIds);
     }
