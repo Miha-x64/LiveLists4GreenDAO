@@ -44,4 +44,8 @@ public final class Item implements GreenDataLayer.WithId {
         this.text = text;
     }
 
+    @Override
+    public String toString() {
+        return "Item{#" + id + ", text=" + text + '}';
+    }
 }

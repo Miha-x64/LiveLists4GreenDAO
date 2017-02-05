@@ -6,7 +6,7 @@ android {
     buildToolsVersion "25.0.2"
     defaultConfig {
         applicationId "net.aquadc.greenreactive"
-        minSdkVersion 9
+        minSdkVersion 11 // was 9, set 11 because of 'selectableItemBackground'
         targetSdkVersion 25
         versionCode 1
         versionName "1.0"

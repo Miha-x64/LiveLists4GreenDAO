@@ -120,7 +120,6 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
 
     // handler
 
-
     /*pkg*/ static final int INSERTION = 0;
     /*pkg*/ static final int UPDATE = 1;
     /*pkg*/ static final int REMOVAL = 2;
@@ -130,12 +129,10 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
 
     @SuppressLint("HandlerLeak") // whole DataLayer is long lived, and should die along with this Handler
     private class DataLayerHandler extends Handler {
-
         DataLayerHandler() {
             super(handlerThread.getLooper());
         }
-        @Override
-        public void handleMessage(Message msg) {
+        @Override public void handleMessage(Message msg) {
             switch (msg.what) {
                 case SAVE: {
                     T t = (T) msg.obj;
