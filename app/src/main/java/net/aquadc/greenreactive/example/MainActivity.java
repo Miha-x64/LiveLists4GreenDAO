@@ -105,7 +105,9 @@ public final class MainActivity extends AppCompatActivity {
                             EditText text = (EditText) di.findViewById(R.id.text);
                             EditText order = (EditText) di.findViewById(R.id.order);
                             current.setText(text.getText().toString());
-                            current.setOrder(Integer.parseInt(order.getText().toString()));
+
+                            String orderStr = order.getText().toString();
+                            current.setOrder(orderStr.isEmpty() ? 0 : Integer.parseInt(orderStr));
                             dataLayer.save(current);
                         }
                     })
