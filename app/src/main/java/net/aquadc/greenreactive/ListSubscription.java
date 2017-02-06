@@ -2,6 +2,7 @@ package net.aquadc.greenreactive;
 
 import android.os.Handler;
 import android.support.annotation.Nullable;
+import android.support.annotation.WorkerThread;
 
 import org.greenrobot.greendao.query.LazyList;
 import org.greenrobot.greendao.query.Query;
@@ -21,8 +22,9 @@ import java.util.Set;
 //    private static final String[] ID = {"_id"};
 
     private final Handler handler;
-    private final Query<T> query;
     /*pkg*/ final LiveDataLayer.BaseListSubscriber<T> subscriber;
+
+    private Query<T> query;
 
     private LazyList<T> list;
     private long[] ids;
@@ -50,13 +52,15 @@ import java.util.Set;
         }
     }
 
+    @WorkerThread
     /*pkg*/ void dispatchUpdate(T newT) {
         if (containId(newT.getId())) {
             dispatchNonStructuralChange(newT.getId());
         }
     }
 
-    /*pkg*/ boolean dispatchStructuralChange(final Long idOfInsertedOrRemoved) {
+    @WorkerThread // null when changing query, will be replaced with Set<Long>
+    /*pkg*/ boolean dispatchStructuralChange(@Nullable final Long idOfInsertedOrRemoved) {
         final LazyList<T> oldList = list;
         final LazyList<T> newList = query.listLazy();
         final long[] oldIds = ids;
@@ -83,7 +87,8 @@ import java.util.Set;
 
         final List<T> uList = Collections.unmodifiableList(newList);
         final long[] uIds = newIds.clone(); // fixme
-        final Set<Long> changed = Collections.singleton(idOfInsertedOrRemoved);
+        final Set<Long> changed = idOfInsertedOrRemoved == null
+                ? Collections.<Long>emptySet() : Collections.singleton(idOfInsertedOrRemoved);
 
         LiveDataLayer.BaseListSubscriber<T> sub = subscriber;
         final Object payload = sub instanceof LiveDataLayer.ListSubscriberWithPayload
@@ -104,6 +109,7 @@ import java.util.Set;
         return true;
     }
 
+    @WorkerThread
     private boolean containId(Long pk) {
         long id = pk/*.longValue()*/;
         for (long l : ids) {
@@ -114,11 +120,8 @@ import java.util.Set;
         return false;
     }
 
-    private void dispatchNonStructuralChange(@Nullable final Long idOfChanged) {
-        if (idOfChanged == null) {
-            throw new AssertionError("what's going on?");
-        }
-
+    @WorkerThread
+    private void dispatchNonStructuralChange(final Long idOfChanged) {
         if (!dispatchStructuralChange(idOfChanged)) { // no moves
             final LazyList<T> list = this.list;
             handler.post(new Runnable() {
@@ -134,6 +137,12 @@ import java.util.Set;
     /*pkg*/ void dispose() {
         handler.removeCallbacksAndMessages(null);
         list.close();
+    }
+
+    @WorkerThread
+    /*pkg*/ void changeQuery(Query<T> newQuery) {
+        this.query = newQuery;
+        dispatchStructuralChange(null);
     }
 
     private static long[] loadIds(Query<? extends LiveDataLayer.WithId> query) { // fixme absolutely awful stub impl

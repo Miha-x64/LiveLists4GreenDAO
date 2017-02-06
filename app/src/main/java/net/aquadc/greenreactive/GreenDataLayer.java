@@ -7,6 +7,7 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
+import android.support.annotation.WorkerThread;
 import android.util.Pair;
 
 import org.greenrobot.greendao.AbstractDao;
@@ -26,6 +27,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
 
     private static final int SAVE = 0;
     private static final int REMOVE = 1;
+    private static final int CHANGE = 2;
 
     /*pkg*/ static final HandlerThread handlerThread = new HandlerThread("GreenDataLayerThread", 2);
     static {
@@ -110,6 +112,15 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
     }
 
     @Override
+    public void changeQuery(BaseListSubscriber<T> subscriber, Query<T> newQuery) {
+        ListSubscription<T> sub = listSubscriptions.get(required(subscriber, "subscriber"));
+        if (sub == null) {
+            throw new IllegalStateException(subscriber + " is not subscribed");
+        }
+        handler.dispatchMessage(handler.obtainMessage(CHANGE, new Pair<>(sub, required(newQuery, "new query"))));
+    }
+
+    @Override
     public void unsubscribe(BaseListSubscriber<T> subscriber) {
         ListSubscription sub = listSubscriptions.remove(subscriber);
         if (sub == null) {
@@ -153,10 +164,16 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
                     dispatchSingleChange(REMOVAL, key);
                     break;
                 }
+                case CHANGE: {
+                    Pair<ListSubscription<T>, Query<T>> pair = (Pair<ListSubscription<T>, Query<T>>) msg.obj;
+                    pair.first.changeQuery(pair.second);
+                    break;
+                }
                 default:
                     throw new UnsupportedOperationException();
             }
         }
+        @WorkerThread
         private void dispatchSingleChange(@SingleChange int kind, Object payload) {
             if (kind == UPDATE) {
                 final T newT = (T) payload;

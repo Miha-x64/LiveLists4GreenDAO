@@ -16,8 +16,9 @@ import java.util.Set;
 public abstract class LiveAdapter<MDL extends LiveDataLayer.WithId, VH extends LiveAdapter.ViewHolder<MDL>>
         extends RecyclerView.Adapter<VH> {
 
-    private final Query<MDL> query;
     private final LiveDataLayer<MDL, Query<MDL>> layer;
+
+    private Query<MDL> query;
 
     protected LiveAdapter(Query<MDL> query, LiveDataLayer<MDL, Query<MDL>> layer) {
         this.query = query;
@@ -97,6 +98,11 @@ public abstract class LiveAdapter<MDL extends LiveDataLayer.WithId, VH extends L
     @Override
     public void onDetachedFromRecyclerView(RecyclerView recyclerView) {
         layer.unsubscribe(subscriber);
+    }
+
+    public void changeQuery(Query<MDL> newQuery) {
+        this.query = newQuery;
+        layer.changeQuery(subscriber, newQuery);
     }
 
 

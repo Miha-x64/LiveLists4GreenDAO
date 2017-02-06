@@ -9,6 +9,11 @@ import android.os.Bundle;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -28,12 +33,15 @@ public final class MainActivity extends AppCompatActivity {
     final Handler handler = new Handler();
     LiveDataLayer<Item, Query<Item>> dataLayer;
     LiveDataLayer.SingleSubscriber<Item> subscriber;
+    LiveAdapter<Item, ItemHolder> adapter;
+    ItemDao dao;
 
     TextView zeroItem;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
 
         ImageButton fab = (ImageButton) findViewById(R.id.fab);
         fab.setOnClickListener(clickListener);
@@ -58,14 +66,16 @@ public final class MainActivity extends AppCompatActivity {
         RecyclerView recycler = (RecyclerView) findViewById(R.id.recycler);
         recycler.setLayoutManager(new LinearLayoutManager(this));
 
-        recycler.setAdapter(
-                new LiveAdapter<Item, ItemHolder>(
-                        app.getItemDao().queryBuilder().orderAsc(ItemDao.Properties.Order).build(), dataLayer) {
-                    @Override public ItemHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                        return new ItemHolder(getLayoutInflater()
-                                .inflate(R.layout.simple_list_item_2, parent, false));
-                    }
-                });
+        dao = app.getItemDao();
+        adapter = new LiveAdapter<Item, ItemHolder>(
+                dao.queryBuilder().orderAsc(ItemDao.Properties.Order).build(), dataLayer) {
+            @Override
+            public ItemHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                return new ItemHolder(getLayoutInflater()
+                        .inflate(R.layout.simple_list_item_2, parent, false));
+            }
+        };
+        recycler.setAdapter(adapter);
         recycler.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
     }
 
@@ -142,6 +152,38 @@ public final class MainActivity extends AppCompatActivity {
         handler.removeCallbacksAndMessages(null);
         dataLayer.unsubscribe(subscriber);
         super.onPause();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.menu_main, menu);
+
+        MenuItem searchItem = menu.findItem(R.id.action_search);
+
+        SearchView searchView = null;
+        if (searchItem != null) {
+            searchView = (SearchView) searchItem.getActionView();
+        }
+        if (searchView != null) {
+            searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+                @Override
+                public boolean onQueryTextSubmit(String query) {
+                    return false;
+                }
+
+                @Override
+                public boolean onQueryTextChange(String newText) {
+                    adapter.changeQuery(
+                            dao.queryBuilder()
+                                    .where(ItemDao.Properties.Text.like('%' + newText + '%'))
+                                    .orderAsc(ItemDao.Properties.Order)
+                                    .build());
+                    return true;
+                }
+            });
+        }
+        return super.onCreateOptionsMenu(menu);
     }
 
     private final View.OnClickListener clickListener = new View.OnClickListener() {

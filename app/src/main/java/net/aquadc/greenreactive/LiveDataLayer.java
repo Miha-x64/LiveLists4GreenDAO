@@ -17,6 +17,7 @@ public interface LiveDataLayer<T extends LiveDataLayer.WithId, QUERY> {
 
     void subscribeOnList(QUERY query, BaseListSubscriber<T> subscriber);
     void unsubscribe(BaseListSubscriber<T> subscriber);
+    void changeQuery(BaseListSubscriber<T> subscriber, QUERY newQuery); // todo document in russian article
 
     interface SingleSubscriber<T> {
         /**
