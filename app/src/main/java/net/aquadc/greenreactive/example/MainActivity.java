@@ -1,6 +1,6 @@
 package net.aquadc.greenreactive.example;
 
-import android.content.Context;
+import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Handler;
 import android.support.v7.app.AlertDialog;
@@ -59,7 +59,8 @@ public final class MainActivity extends AppCompatActivity {
         recycler.setLayoutManager(new LinearLayoutManager(this));
 
         recycler.setAdapter(
-                new LiveAdapter<Item, ItemHolder>(app.getItemDao().queryBuilder().build(), dataLayer) {
+                new LiveAdapter<Item, ItemHolder>(
+                        app.getItemDao().queryBuilder().orderAsc(ItemDao.Properties.Order).build(), dataLayer) {
                     @Override public ItemHolder onCreateViewHolder(ViewGroup parent, int viewType) {
                         return new ItemHolder(getLayoutInflater()
                                 .inflate(R.layout.simple_list_item_2, parent, false));
@@ -83,19 +84,18 @@ public final class MainActivity extends AppCompatActivity {
             text1.setText(item.getText());
         }
         @Override public void onClick(View v) {
-            Context ctx = v.getContext();
-            final EditText et = new EditText(ctx);
-            String text = currentItem.getText();
-            et.setText(text);
-            et.setSelection(text.length());
-            new AlertDialog.Builder(v.getContext())
+            AlertDialog dialog = new AlertDialog.Builder(v.getContext())
                     .setTitle("Edit")
-                    .setView(et)
+                    .setView(R.layout.item_edit)
                     .setPositiveButton("Save", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             Item current = currentItem;
-                            current.setText(et.getText().toString());
+                            Dialog di = (Dialog) dialog;
+                            EditText text = (EditText) di.findViewById(R.id.text);
+                            EditText order = (EditText) di.findViewById(R.id.order);
+                            current.setText(text.getText().toString());
+                            current.setOrder(Integer.parseInt(order.getText().toString()));
                             dataLayer.save(current);
                         }
                     })
@@ -107,6 +107,13 @@ public final class MainActivity extends AppCompatActivity {
                         }
                     })
                     .show();
+
+            String text = currentItem.getText();
+            EditText et = (EditText) dialog.findViewById(R.id.text);
+            et.setText(text);
+            et.setSelection(text.length());
+            EditText order = (EditText) dialog.findViewById(R.id.order);
+            order.setText(Integer.toString(currentItem.getOrder()));
         }
     }
 
@@ -149,7 +156,7 @@ public final class MainActivity extends AppCompatActivity {
                             .setPositiveButton("Save", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-                                    dataLayer.save(new Item(null, et.getText().toString()));
+                                    dataLayer.save(new Item(null, et.getText().toString(), 0));
                                 }
                             })
                             .show();

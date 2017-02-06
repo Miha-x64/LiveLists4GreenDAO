@@ -179,7 +179,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
             for (final ListSubscription<T> sub: new HashMap<>(listSubscriptions).values()) {
                 switch (kind) {
                     case INSERTION:
-                        sub.dispatchStructuralChange((Long) payload, -1);
+                        sub.dispatchStructuralChange((Long) payload);
                         break;
 
                     case UPDATE:
@@ -187,7 +187,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
                         break;
 
                     case REMOVAL:
-                        sub.dispatchStructuralChange((Long) payload, -1);
+                        sub.dispatchStructuralChange((Long) payload);
                         break;
 
                     default:

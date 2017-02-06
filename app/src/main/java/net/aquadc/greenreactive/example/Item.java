@@ -17,10 +17,13 @@ public final class Item implements GreenDataLayer.WithId {
 
     private String text;
 
-    @Generated(hash = 1820292856)
-    public Item(Long id, String text) {
+    private int order;
+
+    @Generated(hash = 490057792)
+    public Item(Long id, String text, int order) {
         this.id = id;
         this.text = text;
+        this.order = order;
     }
 
     @Generated(hash = 1470900980)
@@ -47,5 +50,13 @@ public final class Item implements GreenDataLayer.WithId {
     @Override
     public String toString() {
         return "Item{#" + id + ", text=" + text + '}';
+    }
+
+    public int getOrder() {
+        return this.order;
+    }
+
+    public void setOrder(int order) {
+        this.order = order;
     }
 }

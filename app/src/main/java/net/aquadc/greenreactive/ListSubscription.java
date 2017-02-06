@@ -6,6 +6,7 @@ import android.support.annotation.Nullable;
 import org.greenrobot.greendao.query.LazyList;
 import org.greenrobot.greendao.query.Query;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -55,27 +56,26 @@ import java.util.Set;
         }
     }
 
-    private boolean containId(Long pk) {
-        long id = pk/*.longValue()*/;
-        for (long l : ids) {
-            if (l == id) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /*pkg*/ void dispatchStructuralChange(final Long idOfInsertedOrRemoved, int delta) {
+    /*pkg*/ boolean dispatchStructuralChange(final Long idOfInsertedOrRemoved) {
         final LazyList<T> oldList = list;
         final LazyList<T> newList = query.listLazy();
+        final long[] oldIds = ids;
         final long[] newIds = loadIds(query);
 
-        int newSize = newList.size();
-        int oldSize = oldList.size();
+        int newSize = newIds.length;
+        int oldSize = oldIds.length;
 
-        if (newSize == oldSize) {
-            newList.close();
-            return; // change not affected this query
+        if (BuildConfig.DEBUG) {
+            if (newIds.length != newList.size() || oldIds.length != oldList.size()) {
+                throw new AssertionError();
+            }
+        }
+
+        if (newSize == oldSize) { // no insertions/deletions
+            if (Arrays.equals(oldIds, newIds)) { // no moves
+                newList.close();
+                return false; // change not affected this query
+            }
         }
 
         list = newList;
@@ -101,17 +101,34 @@ import java.util.Set;
                 oldList.close();
             }
         });
+        return true;
+    }
+
+    private boolean containId(Long pk) {
+        long id = pk/*.longValue()*/;
+        for (long l : ids) {
+            if (l == id) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void dispatchNonStructuralChange(@Nullable final Long idOfChanged) {
-        final LazyList<T> list = this.list;
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                subscriber.onChange(list, idOfChanged == null
-                        ? Collections.<Long>emptySet() : Collections.singleton(idOfChanged));
-            }
-        });
+        if (idOfChanged == null) {
+            throw new AssertionError("what's going on?");
+        }
+
+        if (!dispatchStructuralChange(idOfChanged)) { // no moves
+            final LazyList<T> list = this.list;
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    subscriber.onChange(list, idOfChanged == null
+                            ? Collections.<Long>emptySet() : Collections.singleton(idOfChanged));
+                }
+            });
+        }
     }
 
     /*pkg*/ void dispose() {
