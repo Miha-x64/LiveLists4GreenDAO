@@ -1,5 +1,7 @@
 package net.aquadc.greenreactive;
 
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
@@ -11,6 +13,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
+
+import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getParameters;
+import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
 
 /**
  * Created by miha on 04.02.17
@@ -18,10 +24,8 @@ import java.util.Set;
 
 /*pkg*/ final class ListSubscription<T extends LiveDataLayer.WithId> {
 
-//    private static final long[] EMPTY_LONGS = {};
-//    private static final String[] ID = {"_id"};
-
     private final Handler handler;
+    private final SQLiteDatabase db;
     /*pkg*/ final LiveDataLayer.BaseListSubscriber<T> subscriber;
 
     private Query<T> query;
@@ -29,14 +33,16 @@ import java.util.Set;
     private LazyList<T> list;
     private long[] ids;
 
-    /*pkg*/ ListSubscription(Handler handler, Query<T> query, LiveDataLayer.BaseListSubscriber<T> subscriber) {
+    /*pkg*/ ListSubscription(Handler handler, SQLiteDatabase db,
+                             LiveDataLayer.BaseListSubscriber<T> subscriber, Query<T> query) {
         this.handler = handler;
-        this.query = query;
+        this.db = db;
         this.subscriber = subscriber;
+        this.query = query;
 
         LazyList<T> list = query.listLazy();
         this.list = list;
-        long[] ids = loadIds(query);
+        long[] ids = loadIds(db, query);
         this.ids = ids;
 
         List<T> uList = Collections.unmodifiableList(list);
@@ -64,7 +70,7 @@ import java.util.Set;
         final LazyList<T> oldList = list;
         final LazyList<T> newList = query.listLazy();
         final long[] oldIds = ids;
-        final long[] newIds = loadIds(query);
+        final long[] newIds = loadIds(db, query);
 
         int newSize = newIds.length;
         int oldSize = oldIds.length;
@@ -122,7 +128,9 @@ import java.util.Set;
 
     @WorkerThread
     private void dispatchNonStructuralChange(final Long idOfChanged) {
-        if (!dispatchStructuralChange(idOfChanged)) { // no moves
+        // simple update can lead to move due to change of a value given query ordered by
+        // todo: don't check for structural changes if a query has no ORDER BY
+        if (!dispatchStructuralChange(idOfChanged)) {
             final LazyList<T> list = this.list;
             handler.post(new Runnable() {
                 @Override
@@ -145,15 +153,27 @@ import java.util.Set;
         dispatchStructuralChange(null);
     }
 
-    private static long[] loadIds(Query<? extends LiveDataLayer.WithId> query) { // fixme absolutely awful stub impl
-        LazyList<? extends LiveDataLayer.WithId> list = query.listLazyUncached();
-        long[] ids = new long[list.size()];
-        for (int i = 0; i < list.size(); i++) {
-            ids[i] = list.get(i).getId();
+    private static final long[] EMPTY_LONGS = {};
+    private static final Pattern _FROM_ = Pattern.compile("\\Q FROM \\E");
+    private static long[] loadIds(SQLiteDatabase db, Query<? extends LiveDataLayer.WithId> query) {
+        // fixme: why getting ids is slower than using listLazy?
+        long[] ids = null;
+        if (BuildConfig.DEBUG) {
+            // get IDs in awful way
+            long nanos = System.nanoTime();
+            LazyList<? extends LiveDataLayer.WithId> list = query.listLazyUncached();
+            ids = new long[list.size()];
+            for (int i = 0; i < list.size(); i++) {
+                ids[i] = list.get(i).getId();
+            }
+            nanos = System.nanoTime() - nanos;
+            System.out.println("Got IDs in awful way in " + (nanos/1000/1000.0) + " ms");
         }
-        return ids;
 
-        /*Cursor cur = db.query(table, ID, null, null, null, null, null);
+        long nanos = System.nanoTime();
+        //SELECT T."_id",T."TEXT",T."ORDER" FROM "ITEM" T  ORDER BY T.'ORDER' ASC
+        // get IDs directly, by querying only IDs
+        Cursor cur = db.rawQuery("SELECT T.\"_id\" FROM " + _FROM_.split(getSql(query), 2)[1], getParameters(query));
         if (!cur.moveToFirst()) {
             cur.close();
             return EMPTY_LONGS;
@@ -166,6 +186,15 @@ import java.util.Set;
             pos++;
         } while (cur.moveToNext());
         cur.close();
-        return array;*/
+
+        if (BuildConfig.DEBUG) {
+            nanos = System.nanoTime() - nanos;
+            System.out.println("Got IDs directly in " + (nanos/1000/1000.0) + " ms");
+            if (!Arrays.equals(ids, array)) {
+                throw new AssertionError();
+            }
+        }
+
+        return array;
     }
 }

@@ -105,7 +105,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
     @Override
     public void subscribeOnList(Query<T> query, BaseListSubscriber<T> subscriber) {
         ListSubscription<T> sub = new ListSubscription<>(
-                new Handler(), query, required(subscriber, "subscriber"));
+                new Handler(), db, required(subscriber, "subscriber"), query);
         if (listSubscriptions.put(subscriber, sub) != null) {
             throw new IllegalStateException(subscriber + " is already subscribed."); // broken state
         }
