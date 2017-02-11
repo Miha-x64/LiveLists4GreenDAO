@@ -1,7 +1,6 @@
 package net.aquadc.greenreactive.example;
 
 import android.app.Application;
-import android.database.sqlite.SQLiteDatabase;
 
 import net.aquadc.greenreactive.LiveDataLayer;
 import net.aquadc.greenreactive.GreenDataLayer;
@@ -26,7 +25,7 @@ public final class App extends Application {
         Database db = helper.getWritableDb();
         DaoSession daoSession = new DaoMaster(db).newSession();
         ItemDao itemDao = daoSession.getItemDao();
-        itemLayer = new GreenDataLayer<>(itemDao, (SQLiteDatabase) db.getRawDatabase());
+        itemLayer = new GreenDataLayer<>(itemDao);
         this.itemDao = itemDao;
     }
 

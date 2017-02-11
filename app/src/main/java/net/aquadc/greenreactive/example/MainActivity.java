@@ -33,6 +33,7 @@ public final class MainActivity extends AppCompatActivity {
     final Handler handler = new Handler();
     LiveDataLayer<Item, Query<Item>> dataLayer;
     LiveDataLayer.SingleSubscriber<Item> subscriber;
+    private RecyclerView recycler;
     LiveAdapter<Item, ItemHolder> adapter;
     ItemDao dao;
 
@@ -63,7 +64,7 @@ public final class MainActivity extends AppCompatActivity {
             }
         };
 
-        RecyclerView recycler = (RecyclerView) findViewById(R.id.recycler);
+        recycler = (RecyclerView) findViewById(R.id.recycler);
         recycler.setLayoutManager(new LinearLayoutManager(this));
 
         dao = app.getItemDao();
@@ -154,6 +155,12 @@ public final class MainActivity extends AppCompatActivity {
         handler.removeCallbacksAndMessages(null);
         dataLayer.unsubscribe(subscriber);
         super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        recycler.setAdapter(null);
+        super.onDestroy();
     }
 
     @Override

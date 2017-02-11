@@ -1,7 +1,6 @@
 package net.aquadc.greenreactive;
 
 import android.annotation.SuppressLint;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -39,11 +38,9 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
     /*pkg*/ final Set<Long> enqueuedForRemoval = new CopyOnWriteArraySet<>();
     private final Handler handler;
     /*pkg*/ final AbstractDao<T, Long> dao;
-    private final SQLiteDatabase db;
 
-    public GreenDataLayer(AbstractDao<T, Long> dao, SQLiteDatabase db) {
+    public GreenDataLayer(AbstractDao<T, Long> dao) {
         this.dao = dao;
-        this.db = db;
         handler = new DataLayerHandler();
     }
 
@@ -105,7 +102,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
     @Override
     public void subscribeOnList(Query<T> query, BaseListSubscriber<T> subscriber) {
         ListSubscription<T> sub = new ListSubscription<>(
-                new Handler(), db, required(subscriber, "subscriber"), query);
+                new Handler(), dao, required(subscriber, "subscriber"), query);
         if (listSubscriptions.put(subscriber, sub) != null) {
             throw new IllegalStateException(subscriber + " is already subscribed."); // broken state
         }
