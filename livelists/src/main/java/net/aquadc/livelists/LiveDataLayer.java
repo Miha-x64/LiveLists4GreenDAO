@@ -1,7 +1,7 @@
 package net.aquadc.livelists;
 
 import java.util.List;
-import java.util.Set;
+import net.aquadc.blitz.LongSet;
 
 /**
  * Created by miha on 03.02.17
@@ -34,11 +34,11 @@ public interface LiveDataLayer<T extends LiveDataLayer.WithId, QUERY> {
          * @param newIds            IDs of all items (to detect structural changes)
          * @param changedItemIds    IDs of changed items
          */
-        void onStructuralChange(List<T> newList, long[] newIds, Set<Long> changedItemIds);
+        void onStructuralChange(List<T> newList, long[] newIds, LongSet changedItemIds);
     }
     interface ListSubscriberWithPayload<T, PL> extends BaseListSubscriber<T> {
-        void onStructuralChange(List<T> newList, long[] newIds, Set<Long> changedItemIds, PL payload);
-        PL calculatePayload(List<T> newList, long[] newIds, Set<Long> changedItemIds);
+        void onStructuralChange(List<T> newList, long[] newIds, LongSet changedItemIds, PL payload);
+        PL calculatePayload(List<T> newList, long[] newIds, LongSet changedItemIds);
     }
     interface BaseListSubscriber<T> {
         /**
@@ -46,7 +46,7 @@ public interface LiveDataLayer<T extends LiveDataLayer.WithId, QUERY> {
          * @param newList           list containing new items
          * @param changedItemIds    IDs of changed items
          */
-        void onChange(List<T> newList, Set<Long> changedItemIds);
+        void onChange(List<T> newList, LongSet changedItemIds);
     }
 
     interface WithId {

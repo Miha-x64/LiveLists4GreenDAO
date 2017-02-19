@@ -12,8 +12,11 @@ import org.greenrobot.greendao.query.Query;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Pattern;
+
+import net.aquadc.blitz.LongSet;
+import net.aquadc.blitz.impl.ImmutableLongTreeSet;
+import net.aquadc.blitz.impl.MutableLongHashSet;
 
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
@@ -58,7 +61,7 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
 
         List<T> uList = unmodifiableList(list);
         long[] uIds = ids.clone(); // fixme don't clone in some cases
-        Set<Long> changes = emptySet();
+        LongSet changes = ImmutableLongTreeSet.empty();
         if (subscriber instanceof LiveDataLayer.ListSubscriberWithPayload) {
             LiveDataLayer.ListSubscriberWithPayload sub =
                     (LiveDataLayer.ListSubscriberWithPayload) subscriber;
@@ -104,8 +107,8 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
 
         final List<T> uList = unmodifiableList(newList);
         final long[] uIds = newIds.clone(); // fixme
-        final Set<Long> changed = idOfInsertedOrRemoved == null
-                ? Collections.<Long>emptySet() : singleton(idOfInsertedOrRemoved);
+        final LongSet changed = idOfInsertedOrRemoved == null
+                ? ImmutableLongTreeSet.empty() : ImmutableLongTreeSet.singleton(idOfInsertedOrRemoved);
 
         LiveDataLayer.BaseListSubscriber<T> sub = subscriber;
         final Object payload = sub instanceof LiveDataLayer.ListSubscriberWithPayload
@@ -147,7 +150,7 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
                 @Override
                 public void run() {
                     subscriber.onChange(list, idOfChanged == null
-                            ? Collections.<Long>emptySet() : singleton(idOfChanged));
+                            ? ImmutableLongTreeSet.empty() : ImmutableLongTreeSet.singleton(idOfChanged));
                 }
             });
         }

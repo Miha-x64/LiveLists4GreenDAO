@@ -10,6 +10,7 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/livelists" />
+            <option value="$USER_HOME$/IdeaProjects/Blitz" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

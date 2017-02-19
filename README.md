@@ -11,3 +11,7 @@ recycler.setAdapter(
             }
         });
 ```
+
+Depends on another my projects, «Blitz!», which provides collections of longs.
+Still not published on any Maven repo, so you may clone that
+project in order to try out this one.

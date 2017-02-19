@@ -12,6 +12,8 @@ import android.util.Pair;
 import org.greenrobot.greendao.AbstractDao;
 import org.greenrobot.greendao.query.Query;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -133,6 +135,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
     /*pkg*/ static final int REMOVAL = 2;
 
     @IntDef( { INSERTION, UPDATE, REMOVAL } )
+    @Retention(RetentionPolicy.SOURCE)
     /*pkg*/ @interface SingleChange { }
 
     @SuppressLint("HandlerLeak") // whole DataLayer is long lived, and should die along with this Handler

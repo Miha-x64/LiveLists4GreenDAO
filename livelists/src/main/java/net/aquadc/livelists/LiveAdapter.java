@@ -7,7 +7,7 @@ import android.view.View;
 import org.greenrobot.greendao.query.Query;
 
 import java.util.List;
-import java.util.Set;
+import net.aquadc.blitz.LongSet;
 
 /**
  * Created by miha on 05.02.17
@@ -32,7 +32,7 @@ public abstract class LiveAdapter<MDL extends LiveDataLayer.WithId, VH extends L
             new LiveDataLayer.ListSubscriberWithPayload<MDL, DiffUtil.DiffResult>() {
 
                 @Override
-                public DiffUtil.DiffResult calculatePayload(final List<MDL> newList, final long[] newIds, final Set<Long> changedItemIds) {
+                public DiffUtil.DiffResult calculatePayload(final List<MDL> newList, final long[] newIds, final LongSet changedItemIds) {
                     final List<MDL> oldList = list;
                     if (oldList == null) {
                         return null;
@@ -52,7 +52,7 @@ public abstract class LiveAdapter<MDL extends LiveDataLayer.WithId, VH extends L
                 }
 
                 @Override
-                public void onStructuralChange(List<MDL> newList, long[] newIds, Set<Long> changedItemIds, DiffUtil.DiffResult diff) {
+                public void onStructuralChange(List<MDL> newList, long[] newIds, LongSet changedItemIds, DiffUtil.DiffResult diff) {
                     list = newList;
                     ids = newIds;
                     if (diff != null) {
@@ -61,7 +61,7 @@ public abstract class LiveAdapter<MDL extends LiveDataLayer.WithId, VH extends L
                 }
 
                 @Override
-                public void onChange(List<MDL> newList, Set<Long> changedItemIds) {
+                public void onChange(List<MDL> newList, LongSet changedItemIds) {
                     list = newList;
 
                     int changed = 0;
