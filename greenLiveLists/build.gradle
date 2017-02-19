@@ -31,5 +31,5 @@ dependencies {
 
     compile 'com.android.support:recyclerview-v7:25.1.0'
     compile 'org.greenrobot:greendao:3.2.0'
-    compile project(':blitz')
+    compile project(':liveLists')
 }

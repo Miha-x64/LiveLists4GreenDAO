@@ -9,7 +9,8 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/livelists" />
+            <option value="$PROJECT_DIR$/greenLiveLists" />
+            <option value="$PROJECT_DIR$/liveLists" />
             <option value="$USER_HOME$/IdeaProjects/Blitz" />
           </set>
         </option>

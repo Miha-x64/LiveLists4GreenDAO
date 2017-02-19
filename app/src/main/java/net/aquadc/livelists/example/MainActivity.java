@@ -20,7 +20,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-import net.aquadc.livelists.LiveAdapter;
+import net.aquadc.livelists.greendao.LiveAdapter;
 import net.aquadc.livelists.LiveDataLayer;
 
 import org.greenrobot.greendao.query.Query;

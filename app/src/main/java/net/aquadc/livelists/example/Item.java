@@ -1,6 +1,6 @@
 package net.aquadc.livelists.example;
 
-import net.aquadc.livelists.GreenDataLayer;
+import net.aquadc.livelists.LiveDataLayer;
 
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Id;
@@ -10,7 +10,7 @@ import org.greenrobot.greendao.annotation.Generated;
  * Created by miha on 03.02.17
  */
 @Entity
-public final class Item implements GreenDataLayer.WithId {
+public final class Item implements LiveDataLayer.WithId {
 
     @Id
     private Long id;

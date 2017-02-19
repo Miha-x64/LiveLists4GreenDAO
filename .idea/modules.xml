@@ -5,7 +5,8 @@
       <module fileurl="file://$PROJECT_DIR$/GreenReactive.iml" filepath="$PROJECT_DIR$/GreenReactive.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$USER_HOME$/IdeaProjects/Blitz/blitz.iml" filepath="$USER_HOME$/IdeaProjects/Blitz/blitz.iml" />
-      <module fileurl="file://$PROJECT_DIR$/livelists/livelists.iml" filepath="$PROJECT_DIR$/livelists/livelists.iml" />
+      <module fileurl="file://$PROJECT_DIR$/greenLiveLists/greenLiveLists.iml" filepath="$PROJECT_DIR$/greenLiveLists/greenLiveLists.iml" />
+      <module fileurl="file://$PROJECT_DIR$/liveLists/livelists.iml" filepath="$PROJECT_DIR$/liveLists/livelists.iml" />
     </modules>
   </component>
 </project>

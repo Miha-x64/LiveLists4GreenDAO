@@ -1,4 +1,4 @@
-package net.aquadc.livelists;
+package net.aquadc.livelists.greendao;
 
 import android.annotation.SuppressLint;
 import android.os.Handler;
@@ -8,6 +8,8 @@ import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.util.Pair;
+
+import net.aquadc.livelists.LiveDataLayer;
 
 import org.greenrobot.greendao.AbstractDao;
 import org.greenrobot.greendao.query.Query;

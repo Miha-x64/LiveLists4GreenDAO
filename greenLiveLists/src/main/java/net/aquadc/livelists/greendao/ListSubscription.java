@@ -1,4 +1,4 @@
-package net.aquadc.livelists;
+package net.aquadc.livelists.greendao;
 
 import android.database.Cursor;
 import android.os.Handler;
@@ -10,16 +10,14 @@ import org.greenrobot.greendao.query.LazyList;
 import org.greenrobot.greendao.query.Query;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import net.aquadc.blitz.LongSet;
 import net.aquadc.blitz.impl.ImmutableLongTreeSet;
 import net.aquadc.blitz.impl.MutableLongHashSet;
+import net.aquadc.livelists.LiveDataLayer;
 
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singleton;
 import static java.util.Collections.unmodifiableList;
 import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getParameters;
 import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;

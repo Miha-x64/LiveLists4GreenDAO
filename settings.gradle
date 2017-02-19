@@ -1,4 +1,4 @@
-include ':app'
-include ':livelists'
+include ':app', ':liveLists'
+include ':greenLiveLists'
 include ':blitz'
 project(':blitz').projectDir = file('/home/miha/IdeaProjects/Blitz/')

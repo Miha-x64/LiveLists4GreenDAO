@@ -3,7 +3,7 @@ package net.aquadc.livelists.example;
 import android.app.Application;
 
 import net.aquadc.livelists.LiveDataLayer;
-import net.aquadc.livelists.GreenDataLayer;
+import net.aquadc.livelists.greendao.GreenDataLayer;
 
 import org.greenrobot.greendao.database.Database;
 import org.greenrobot.greendao.query.Query;

@@ -1,4 +1,4 @@
-package net.aquadc.livelists;
+package net.aquadc.livelists.greendao;
 
 import android.support.v7.util.DiffUtil;
 import android.support.v7.widget.RecyclerView;
@@ -8,6 +8,7 @@ import org.greenrobot.greendao.query.Query;
 
 import java.util.List;
 import net.aquadc.blitz.LongSet;
+import net.aquadc.livelists.LiveDataLayer;
 
 /**
  * Created by miha on 05.02.17
