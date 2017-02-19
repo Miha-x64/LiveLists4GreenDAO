@@ -1,4 +1,4 @@
-package net.aquadc.greenreactive;
+package net.aquadc.livelists;
 
 import java.util.List;
 import java.util.Set;

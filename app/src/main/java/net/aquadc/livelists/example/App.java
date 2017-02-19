@@ -1,9 +1,9 @@
-package net.aquadc.greenreactive.example;
+package net.aquadc.livelists.example;
 
 import android.app.Application;
 
-import net.aquadc.greenreactive.LiveDataLayer;
-import net.aquadc.greenreactive.GreenDataLayer;
+import net.aquadc.livelists.LiveDataLayer;
+import net.aquadc.livelists.GreenDataLayer;
 
 import org.greenrobot.greendao.database.Database;
 import org.greenrobot.greendao.query.Query;

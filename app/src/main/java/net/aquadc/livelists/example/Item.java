@@ -1,6 +1,6 @@
-package net.aquadc.greenreactive.example;
+package net.aquadc.livelists.example;
 
-import net.aquadc.greenreactive.GreenDataLayer;
+import net.aquadc.livelists.GreenDataLayer;
 
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Id;

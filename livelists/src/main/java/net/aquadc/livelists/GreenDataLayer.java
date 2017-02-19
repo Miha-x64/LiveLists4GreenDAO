@@ -1,4 +1,4 @@
-package net.aquadc.greenreactive;
+package net.aquadc.livelists;
 
 import android.annotation.SuppressLint;
 import android.os.Handler;

@@ -1,4 +1,4 @@
-package net.aquadc.greenreactive.example;
+package net.aquadc.livelists.example;
 
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -20,9 +20,8 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-import net.aquadc.greenreactive.LiveAdapter;
-import net.aquadc.greenreactive.LiveDataLayer;
-import net.aquadc.greenreactive.R;
+import net.aquadc.livelists.LiveAdapter;
+import net.aquadc.livelists.LiveDataLayer;
 
 import org.greenrobot.greendao.query.Query;
 

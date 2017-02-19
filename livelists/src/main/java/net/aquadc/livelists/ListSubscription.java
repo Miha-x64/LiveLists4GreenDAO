@@ -1,4 +1,4 @@
-package net.aquadc.greenreactive;
+package net.aquadc.livelists;
 
 import android.database.Cursor;
 import android.os.Handler;
