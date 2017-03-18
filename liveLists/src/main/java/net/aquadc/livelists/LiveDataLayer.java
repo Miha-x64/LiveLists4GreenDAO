@@ -1,7 +1,8 @@
 package net.aquadc.livelists;
 
-import java.util.List;
 import net.aquadc.blitz.LongSet;
+
+import java.util.List;
 
 /**
  * Created by miha on 03.02.17
@@ -15,9 +16,17 @@ public interface LiveDataLayer<T extends LiveDataLayer.WithId, QUERY> {
     void subscribeOnSingle(Long pk, SingleSubscriber<T> subscriber);
     void unsubscribe(SingleSubscriber<T> subscriber);
 
-    void subscribeOnList(QUERY query, BaseListSubscriber<T> subscriber);
-    void unsubscribe(BaseListSubscriber<T> subscriber);
-    void changeQuery(BaseListSubscriber<T> subscriber, QUERY newQuery); // todo document in russian article
+    List<T> snapshot(QUERY query);
+    int size(QUERY query);
+
+    void subscribeOnList(QUERY query, BaseListSubscriber<? super T> subscriber);
+    void unsubscribe(BaseListSubscriber<? super T> subscriber);
+
+    void saved(T t);
+    void saved(Long id);
+    void saved(LongSet t);
+    void removed(Long id);
+    void removed(LongSet ids);
 
     interface SingleSubscriber<T> {
         /**
@@ -46,11 +55,12 @@ public interface LiveDataLayer<T extends LiveDataLayer.WithId, QUERY> {
          * @param newList           list containing new items
          * @param changedItemIds    IDs of changed items
          */
-        void onChange(List<T> newList, LongSet changedItemIds);
+        void onChange(List<? extends T> newList, LongSet changedItemIds);
     }
 
     interface WithId {
         Long getId();
+        void onDelete(); // this entity was deleted, null out id
     }
 
 }

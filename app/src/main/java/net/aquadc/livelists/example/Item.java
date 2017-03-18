@@ -3,8 +3,8 @@ package net.aquadc.livelists.example;
 import net.aquadc.livelists.LiveDataLayer;
 
 import org.greenrobot.greendao.annotation.Entity;
-import org.greenrobot.greendao.annotation.Id;
 import org.greenrobot.greendao.annotation.Generated;
+import org.greenrobot.greendao.annotation.Id;
 
 /**
  * Created by miha on 03.02.17
@@ -37,6 +37,11 @@ public final class Item implements LiveDataLayer.WithId {
 
     /*pkg*/ void setId(Long id) {
         this.id = id;
+    }
+
+    @Override
+    public void onDelete() {
+        id = null;
     }
 
     public String getText() {

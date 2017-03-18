@@ -9,14 +9,18 @@ import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.util.Pair;
 
+import net.aquadc.blitz.LongSet;
+import net.aquadc.blitz.impl.ImmutableLongTreeSet;
 import net.aquadc.livelists.LiveDataLayer;
 
 import org.greenrobot.greendao.AbstractDao;
+import org.greenrobot.greendao.query.LazyList;
 import org.greenrobot.greendao.query.Query;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -28,9 +32,15 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements LiveDataLayer<T, Query<T>> {
 
+    @IntDef( { SAVE, REMOVE, CHANGE_QUERY, NOTIFY_SAVED, NOTIFY_REMOVED } )
+    @Retention(RetentionPolicy.SOURCE)
+    /*pkg*/ @interface Action { }
+
     private static final int SAVE = 0;
     private static final int REMOVE = 1;
-    private static final int CHANGE = 2;
+    private static final int CHANGE_QUERY = 2;
+    private static final int NOTIFY_SAVED = 3;
+    private static final int NOTIFY_REMOVED = 4;
 
     /*pkg*/ static final HandlerThread handlerThread = new HandlerThread("GreenDataLayerThread", 2);
     static {
@@ -38,7 +48,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
         // todo: start a thread with a first subscriber, stop after last unsubscriber
     }
     /*pkg*/ final Map<SingleSubscriber<T>, Pair<Long, Handler>> singleSubscriptions = new ConcurrentHashMap<>();
-    /*pkg*/ final Map<BaseListSubscriber<T>, ListSubscription<T>> listSubscriptions = new ConcurrentHashMap<>();
+    /*pkg*/ final Map<BaseListSubscriber<? super T>, ListSubscription<? super T>> listSubscriptions = new ConcurrentHashMap<>();
     /*pkg*/ final Set<Long> enqueuedForRemoval = new CopyOnWriteArraySet<>();
     private final Handler handler;
     /*pkg*/ final AbstractDao<T, Long> dao;
@@ -69,13 +79,12 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
         if (!enqueuedForRemoval.add(id)) {
             throw new IllegalStateException(t + " is already enqueued for removal.");
         }
-        handler.dispatchMessage(handler.obtainMessage(REMOVE, t.getId()));
+        handler.dispatchMessage(handler.obtainMessage(REMOVE, t));
     }
 
     // single record
 
-    @Override
-    public void subscribeOnSingle(Long pk, SingleSubscriber<T> subscriber) {
+    @Override public void subscribeOnSingle(Long pk, SingleSubscriber<T> subscriber) {
         required(pk, "pk");
         required(subscriber, "subscriber");
         if (enqueuedForRemoval.contains(pk)) {
@@ -92,8 +101,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
             throw new IllegalStateException(subscriber + " is already subscribed."); // broken state
         }
     }
-    @Override
-    public void unsubscribe(SingleSubscriber<T> subscriber) {
+    @Override public void unsubscribe(SingleSubscriber<T> subscriber) {
         Pair<Long, Handler> data = singleSubscriptions.remove(required(subscriber, "subscriber"));
         if (data == null) {
             throw new NoSuchElementException(subscriber + " is not subscribed.");
@@ -103,8 +111,19 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
 
     // list
 
-    @Override
-    public void subscribeOnList(Query<T> query, BaseListSubscriber<T> subscriber) {
+
+    @Override public List<T> snapshot(Query<T> query) {
+        return query.forCurrentThread().list();
+    }
+
+    @Override public int size(Query<T> query) {
+        LazyList<T> ll = query.listLazyUncached();
+        int size = ll.size(); // fixme?
+        ll.close();
+        return size;
+    }
+
+    @Override public void subscribeOnList(Query<T> query, BaseListSubscriber<? super T> subscriber) {
         ListSubscription<T> sub = new ListSubscription<>(
                 new Handler(), dao, required(subscriber, "subscriber"), query);
         if (listSubscriptions.put(subscriber, sub) != null) {
@@ -112,17 +131,15 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
         }
     }
 
-    @Override
-    public void changeQuery(BaseListSubscriber<T> subscriber, Query<T> newQuery) {
-        ListSubscription<T> sub = listSubscriptions.get(required(subscriber, "subscriber"));
+    public void changeQuery(BaseListSubscriber<? super T> subscriber, Query<? extends T> newQuery) {
+        ListSubscription<? super T> sub = listSubscriptions.get(required(subscriber, "subscriber"));
         if (sub == null) {
             throw new IllegalStateException(subscriber + " is not subscribed");
         }
-        handler.dispatchMessage(handler.obtainMessage(CHANGE, new Pair<>(sub, required(newQuery, "new query"))));
+        handler.dispatchMessage(handler.obtainMessage(CHANGE_QUERY, new Pair<>(sub, required(newQuery, "new query"))));
     }
 
-    @Override
-    public void unsubscribe(BaseListSubscriber<T> subscriber) {
+    @Override public void unsubscribe(BaseListSubscriber<? super T> subscriber) {
         ListSubscription sub = listSubscriptions.remove(subscriber);
         if (sub == null) {
             throw new NoSuchElementException(subscriber + " is not subscribed.");
@@ -130,13 +147,36 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
         sub.dispose();
     }
 
+    // notifications
+
+    @Override public void saved(T t) {
+        handler.dispatchMessage(handler.obtainMessage(NOTIFY_SAVED, t));
+    }
+
+    @Override public void saved(Long id) {
+        handler.dispatchMessage(handler.obtainMessage(NOTIFY_SAVED, id));
+    }
+
+    @Override public void saved(LongSet ids) {
+        handler.dispatchMessage(handler.obtainMessage(NOTIFY_SAVED, ids));
+    }
+
+    @Override public void removed(Long id) {
+        handler.dispatchMessage(handler.obtainMessage(NOTIFY_REMOVED, id));
+    }
+
+    @Override public void removed(LongSet ids) {
+        handler.dispatchMessage(handler.obtainMessage(NOTIFY_REMOVED, ids));
+    }
+
     // handler
 
     /*pkg*/ static final int INSERTION = 0;
     /*pkg*/ static final int UPDATE = 1;
     /*pkg*/ static final int REMOVAL = 2;
+    /*pkg*/ static final int INSERTION_OR_UPDATE = 3;
 
-    @IntDef( { INSERTION, UPDATE, REMOVAL } )
+    @IntDef( { INSERTION, UPDATE, REMOVAL, INSERTION_OR_UPDATE } )
     @Retention(RetentionPolicy.SOURCE)
     /*pkg*/ @interface SingleChange { }
 
@@ -146,7 +186,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
             super(handlerThread.getLooper());
         }
         @Override public void handleMessage(Message msg) {
-            switch (msg.what) {
+            switch (/*@Action*/ msg.what) {
                 case SAVE: {
                     T t = (T) msg.obj;
                     boolean insert = t.getId() == null;
@@ -157,18 +197,38 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
                     break;
                 }
                 case REMOVE: {
-                    Long key = (Long) msg.obj;
-                    dao.deleteByKey(key);
-                    if (!enqueuedForRemoval.remove(key)) {
+                    T t = (T) msg.obj;
+                    Long id = t.getId();
+                    dao.deleteByKey(id);
+                    t.onDelete();
+                    if (!enqueuedForRemoval.remove(id)) {
                         throw new IllegalStateException(
-                                "enqueuedForRemoval does not contain PK of removed object: " + key);
+                                "enqueuedForRemoval does not contain PK of removed object: " + t);
                     }
-                    dispatchSingleChange(REMOVAL, key);
+                    dispatchSingleChange(REMOVAL, id);
                     break;
                 }
-                case CHANGE: {
+                case CHANGE_QUERY: {
                     Pair<ListSubscription<T>, Query<T>> pair = (Pair<ListSubscription<T>, Query<T>>) msg.obj;
                     pair.first.changeQuery(pair.second);
+                    break;
+                }
+                case NOTIFY_SAVED: {
+                    Object obj = msg.obj;
+                    if (obj instanceof LongSet) {
+                        dispatchMultiChange((LongSet) obj);
+                    } else /* Long or T */ {
+                        dispatchSingleChange(INSERTION_OR_UPDATE, obj);
+                    }
+                    break;
+                }
+                case NOTIFY_REMOVED: {
+                    Object obj = msg.obj;
+                    if (obj instanceof Long) {
+                        dispatchSingleChange(REMOVAL, obj);
+                    } else {
+                        dispatchMultiChange((LongSet) obj);
+                    }
                     break;
                 }
                 default:
@@ -177,28 +237,30 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
         }
         @WorkerThread
         private void dispatchSingleChange(@SingleChange int kind, Object payload) {
-            if (kind == UPDATE) {
-                final T newT = (T) payload;
-                Long id = newT.getId();
-                // notify items that listen for single changes
-                for (final Map.Entry<SingleSubscriber<T>, Pair<Long, Handler>> entry : new HashMap<>(singleSubscriptions).entrySet()) {
-                    Pair<Long, Handler> val = entry.getValue();
-                    final SingleSubscriber<T> subscriber = entry.getKey();
-                    if (val.first.equals(id)) {
-                        val.second.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                subscriber.onChange(newT);
-                            }
-                        });
+            if (!(payload instanceof Long)) {
+                if (kind == UPDATE || kind == INSERTION_OR_UPDATE) {
+                    final T newT = (T) payload;
+                    Long id = newT.getId();
+                    // notify items that listen for single changes
+                    for (final Map.Entry<SingleSubscriber<T>, Pair<Long, Handler>> entry : new HashMap<>(singleSubscriptions).entrySet()) {
+                        Pair<Long, Handler> val = entry.getValue();
+                        final SingleSubscriber<T> subscriber = entry.getKey();
+                        if (val.first.equals(id)) {
+                            val.second.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    subscriber.onChange(newT);
+                                }
+                            });
+                        }
                     }
                 }
             }
 
-            for (final ListSubscription<T> sub: new HashMap<>(listSubscriptions).values()) {
+            for (final ListSubscription<? super T> sub: new HashMap<>(listSubscriptions).values()) {
                 switch (kind) {
                     case INSERTION:
-                        sub.dispatchStructuralChange((Long) payload);
+                        sub.dispatchStructuralChange(ImmutableLongTreeSet.singleton((Long) payload));
                         break;
 
                     case UPDATE:
@@ -206,7 +268,12 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
                         break;
 
                     case REMOVAL:
-                        sub.dispatchStructuralChange((Long) payload);
+                        sub.dispatchStructuralChange(ImmutableLongTreeSet.singleton((Long) payload));
+                        break;
+
+                    case INSERTION_OR_UPDATE:
+                        Long id = payload instanceof Long ? (Long) payload : ((T) payload).getId();
+                        sub.dispatchNonStructuralChange(id);
                         break;
 
                     default:
@@ -214,14 +281,19 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
                 }
             }
         }
+
+        @WorkerThread
+        private void dispatchMultiChange(LongSet ids) {
+            for (final ListSubscription<? super T> sub: new HashMap<>(listSubscriptions).values()) {
+                sub.dispatchStructuralChange(ids);
+            }
+        }
     }
 
     // util
 
-    private static <T> T required(T whatever, String name) {
-        if (whatever == null) {
-            throw new NullPointerException(name + " required, got null");
-        }
+    /*pkg*/ static <T> T required(T whatever, String name) {
+        if (whatever == null) throw new NullPointerException(name + " required, got null");
         return whatever;
     }
 }

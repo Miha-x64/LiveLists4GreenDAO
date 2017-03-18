@@ -2,10 +2,11 @@ package net.aquadc.livelists.example;
 
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -20,8 +21,10 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-import net.aquadc.livelists.greendao.LiveAdapter;
 import net.aquadc.livelists.LiveDataLayer;
+import net.aquadc.livelists.greendao.GreenDataLayer;
+import net.aquadc.livelists.greendao.GreenLiveList;
+import net.aquadc.livelists.greendao.LiveAdapter;
 
 import org.greenrobot.greendao.query.Query;
 
@@ -30,7 +33,7 @@ import java.util.Date;
 public final class MainActivity extends AppCompatActivity {
 
     final Handler handler = new Handler();
-    LiveDataLayer<Item, Query<Item>> dataLayer;
+    GreenDataLayer<Item> dataLayer;
     LiveDataLayer.SingleSubscriber<Item> subscriber;
     private RecyclerView recycler;
     LiveAdapter<Item, ItemHolder> adapter;
@@ -47,7 +50,7 @@ public final class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(clickListener);
 
         final App app = ((App) getApplication());
-        LiveDataLayer<Item, Query<Item>> dataLayer = app.getItemLayer();
+        GreenDataLayer<Item> dataLayer = app.getItemLayer();
         this.dataLayer = dataLayer;
         Item item = dataLayer.get(1L);
         if (item == null) {
@@ -68,7 +71,7 @@ public final class MainActivity extends AppCompatActivity {
 
         dao = app.getItemDao();
         adapter = new LiveAdapter<Item, ItemHolder>(
-                dao.queryBuilder().orderAsc(ItemDao.Properties.Order).build(), dataLayer) {
+                new GreenLiveList<>(dataLayer, dao.queryBuilder().orderAsc(ItemDao.Properties.Order).build())) {
             @Override
             public ItemHolder onCreateViewHolder(ViewGroup parent, int viewType) {
                 return new ItemHolder(getLayoutInflater()
@@ -89,7 +92,7 @@ public final class MainActivity extends AppCompatActivity {
             itemView.setOnClickListener(this);
         }
         /*pkg*/ Item currentItem;
-        @Override public void bind(Item item) {
+        @Override public void bind(@NonNull Item item) {
             currentItem = item;
             text1.setText(item.getText());
         }
@@ -137,7 +140,7 @@ public final class MainActivity extends AppCompatActivity {
             public void run() {
                 LiveDataLayer<Item, Query<Item>> dataLayer = MainActivity.this.dataLayer;
                 Item item = dataLayer.get(1L);
-                if (item != null) { // fixme: will be null if enqueued by save() but not persisted yet
+                if (item != null) { // will be null if enqueued by save() but not persisted yet
                     item.setText("now: " + new Date());
                     dataLayer.save(item);
                 }
@@ -182,11 +185,13 @@ public final class MainActivity extends AppCompatActivity {
 
                 @Override
                 public boolean onQueryTextChange(String newText) {
-                    adapter.changeQuery(
-                            dao.queryBuilder()
-                                    .where(ItemDao.Properties.Text.like('%' + newText + '%'))
-                                    .orderAsc(ItemDao.Properties.Order)
-                                    .build());
+                    adapter.changeList(
+                            new GreenLiveList<>(
+                                    dataLayer,
+                                    dao.queryBuilder()
+                                            .where(ItemDao.Properties.Text.like('%' + newText + '%'))
+                                            .orderAsc(ItemDao.Properties.Order)
+                                            .build()));
                     return true;
                 }
             });

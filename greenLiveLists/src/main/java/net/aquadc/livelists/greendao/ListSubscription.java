@@ -2,8 +2,12 @@ package net.aquadc.livelists.greendao;
 
 import android.database.Cursor;
 import android.os.Handler;
-import android.support.annotation.Nullable;
+import android.support.annotation.NonNull;
 import android.support.annotation.WorkerThread;
+
+import net.aquadc.blitz.LongSet;
+import net.aquadc.blitz.impl.ImmutableLongTreeSet;
+import net.aquadc.livelists.LiveDataLayer;
 
 import org.greenrobot.greendao.AbstractDao;
 import org.greenrobot.greendao.query.LazyList;
@@ -12,11 +16,6 @@ import org.greenrobot.greendao.query.Query;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
-
-import net.aquadc.blitz.LongSet;
-import net.aquadc.blitz.impl.ImmutableLongTreeSet;
-import net.aquadc.blitz.impl.MutableLongHashSet;
-import net.aquadc.livelists.LiveDataLayer;
 
 import static java.util.Collections.unmodifiableList;
 import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getParameters;
@@ -30,7 +29,7 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
 
     private final Handler handler;
     private final AbstractDao<T, Long> dao;
-    /*pkg*/ final LiveDataLayer.BaseListSubscriber<T> subscriber;
+    /*pkg*/ final LiveDataLayer.BaseListSubscriber<? super T> subscriber;
 
     private Query<T> query;
     private String idQuery;
@@ -41,7 +40,7 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
     private long[] ids;
 
     /*pkg*/ ListSubscription(Handler handler, AbstractDao<T, Long> dao,
-                             LiveDataLayer.BaseListSubscriber<T> subscriber, Query<T> query) {
+                             LiveDataLayer.BaseListSubscriber<? super T> subscriber, Query<T> query) {
         this.handler = handler;
         this.dao = dao;
         this.subscriber = subscriber;
@@ -77,10 +76,10 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
         }
     }
 
-    @WorkerThread // null when changing query, will be replaced with Set<Long>
-    /*pkg*/ boolean dispatchStructuralChange(@Nullable final Long idOfInsertedOrRemoved) {
+    @WorkerThread
+    /*pkg*/ boolean dispatchStructuralChange(@NonNull final LongSet idsOfInsertedOrRemoved) {
         final LazyList<T> oldList = list;
-        final LazyList<T> newList = query.listLazy();
+        final LazyList<T> newList = query.forCurrentThread().listLazy();
         final long[] oldIds = ids;
         final long[] newIds = loadIds(query);
 
@@ -88,7 +87,7 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
         int oldSize = oldIds.length;
 
         if (BuildConfig.DEBUG) {
-            if (newIds.length != newList.size() || oldIds.length != oldList.size()) {
+            if (newSize != newList.size() || oldSize != oldList.size()) {
                 throw new AssertionError();
             }
         }
@@ -105,21 +104,19 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
 
         final List<T> uList = unmodifiableList(newList);
         final long[] uIds = newIds.clone(); // fixme
-        final LongSet changed = idOfInsertedOrRemoved == null
-                ? ImmutableLongTreeSet.empty() : ImmutableLongTreeSet.singleton(idOfInsertedOrRemoved);
 
-        LiveDataLayer.BaseListSubscriber<T> sub = subscriber;
+        LiveDataLayer.BaseListSubscriber<? super T> sub = subscriber;
         final Object payload = sub instanceof LiveDataLayer.ListSubscriberWithPayload
-                ? ((LiveDataLayer.ListSubscriberWithPayload) sub).calculatePayload(uList, newIds, changed)
+                ? ((LiveDataLayer.ListSubscriberWithPayload) sub).calculatePayload(uList, newIds, idsOfInsertedOrRemoved)
                 : null;
         handler.post(new Runnable() {
             @Override
             public void run() {
-                LiveDataLayer.BaseListSubscriber<T> sub = subscriber;
+                LiveDataLayer.BaseListSubscriber<? super T> sub = subscriber;
                 if (sub instanceof LiveDataLayer.ListSubscriberWithPayload) {
-                    ((LiveDataLayer.ListSubscriberWithPayload) sub).onStructuralChange(uList, uIds, changed, payload);
+                    ((LiveDataLayer.ListSubscriberWithPayload) sub).onStructuralChange(uList, uIds, idsOfInsertedOrRemoved, payload);
                 } else if (sub instanceof LiveDataLayer.ListSubscriber) {
-                    ((LiveDataLayer.ListSubscriber) sub).onStructuralChange(uList, uIds, changed);
+                    ((LiveDataLayer.ListSubscriber) sub).onStructuralChange(uList, uIds, idsOfInsertedOrRemoved);
                 }
                 oldList.close();
             }
@@ -139,16 +136,18 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
     }
 
     @WorkerThread
-    private void dispatchNonStructuralChange(final Long idOfChanged) {
+    /*pkg*/ void dispatchNonStructuralChange(final Long idOfChanged) {
         // simple update can lead to move due to change of a value given query ordered by
-        boolean structuralChangeDispatched = orderedQuery && dispatchStructuralChange(idOfChanged);
+        final LongSet idsOfChanged = idOfChanged == null
+                ? ImmutableLongTreeSet.empty() : ImmutableLongTreeSet.singleton(idOfChanged);
+
+        boolean structuralChangeDispatched = orderedQuery && dispatchStructuralChange(idsOfChanged);
         if (!structuralChangeDispatched) {
             final LazyList<T> list = this.list;
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    subscriber.onChange(list, idOfChanged == null
-                            ? ImmutableLongTreeSet.empty() : ImmutableLongTreeSet.singleton(idOfChanged));
+                    subscriber.onChange(list, idsOfChanged);
                 }
             });
         }
@@ -167,7 +166,7 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
         this.idQuery = "SELECT T.\"_id\" FROM " + _FROM_.split(sql, 2)[1];
         this.idQueryParams = getParameters(newQuery);
         this.orderedQuery = sql.contains("ORDER BY");
-        dispatchStructuralChange(null);
+        dispatchStructuralChange(ImmutableLongTreeSet.empty());
     }
 
     private static final long[] EMPTY_LONGS = {};

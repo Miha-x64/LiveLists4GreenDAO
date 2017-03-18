@@ -2,11 +2,9 @@ package net.aquadc.livelists.example;
 
 import android.app.Application;
 
-import net.aquadc.livelists.LiveDataLayer;
 import net.aquadc.livelists.greendao.GreenDataLayer;
 
 import org.greenrobot.greendao.database.Database;
-import org.greenrobot.greendao.query.Query;
 
 /**
  * Created by miha on 03.02.17
@@ -14,7 +12,7 @@ import org.greenrobot.greendao.query.Query;
 
 public final class App extends Application {
 
-    private LiveDataLayer<Item, Query<Item>> itemLayer;
+    private GreenDataLayer<Item> itemLayer;
     private ItemDao itemDao;
 
     @Override
@@ -29,7 +27,7 @@ public final class App extends Application {
         this.itemDao = itemDao;
     }
 
-    public LiveDataLayer<Item, Query<Item>> getItemLayer() {
+    public GreenDataLayer<Item> getItemLayer() {
         return itemLayer;
     }
 
