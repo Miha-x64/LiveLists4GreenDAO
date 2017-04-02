@@ -3,7 +3,9 @@ package net.aquadc.livelists.greendao;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.util.DiffUtil;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 
 import net.aquadc.blitz.LongSet;
@@ -45,11 +47,23 @@ public abstract class LiveAdapter<
                     List<MDL> newList, long[] newIds, LongSet changedItemIds, DiffUtil.DiffResult diff) {
                 list = newList;
                 ids = newIds;
+
                 if (diff != null) {
-                    int scrollX = recycler.getScrollX();
-                    int scrollY = recycler.getScrollY();
+                    final RecyclerView.LayoutManager lm = recycler.getLayoutManager();
+
+                    int pos = -1;
+                    if (lm instanceof LinearLayoutManager) {
+                        pos = ((LinearLayoutManager) lm).findFirstVisibleItemPosition();
+                    } else {
+                        Log.e("LiveAdapter", "saving scroll position for " +
+                                lm.getClass().getSimpleName() + " is not supported.");
+                    }
+
                     diff.dispatchUpdatesTo(LiveAdapter.this);
-                    recycler.scrollTo(scrollX, scrollY);
+
+                    if (pos != -1) {
+                        recycler.scrollToPosition(pos);
+                    }
                 }
             }
             @Override public void onChange(List<? extends MDL> newList, LongSet changedItemIds) {
