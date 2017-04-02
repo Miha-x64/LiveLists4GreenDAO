@@ -158,7 +158,8 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
     }
 
     @Override public void saved(LongSet ids) {
-        handler.dispatchMessage(handler.obtainMessage(NOTIFY_SAVED, ids));
+        if (!ids.isEmpty())
+            handler.dispatchMessage(handler.obtainMessage(NOTIFY_SAVED, ids));
     }
 
     @Override public void removed(Long id) {
@@ -166,7 +167,8 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
     }
 
     @Override public void removed(LongSet ids) {
-        handler.dispatchMessage(handler.obtainMessage(NOTIFY_REMOVED, ids));
+        if (!ids.isEmpty())
+            handler.dispatchMessage(handler.obtainMessage(NOTIFY_REMOVED, ids));
     }
 
     // handler
@@ -273,7 +275,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
 
                     case INSERTION_OR_UPDATE:
                         Long id = payload instanceof Long ? (Long) payload : ((T) payload).getId();
-                        sub.dispatchNonStructuralChange(id);
+                        sub.dispatchNonStructuralChange(ImmutableLongTreeSet.singleton(id));
                         break;
 
                     default:
@@ -285,9 +287,19 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
         @WorkerThread
         private void dispatchMultiChange(LongSet ids) {
             for (final ListSubscription<? super T> sub: new HashMap<>(listSubscriptions).values()) {
-                sub.dispatchStructuralChange(ids);
+                sub.dispatchNonStructuralChange(ids); // this will try to dispatch a structural change first
             }
         }
+
+        @Override
+        public String toString() {
+            return "DataLayerHandler(" + GreenDataLayer.this + ')';
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "GreenDataLayer(" + dao + ')';
     }
 
     // util

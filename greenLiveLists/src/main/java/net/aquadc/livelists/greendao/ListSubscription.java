@@ -72,12 +72,12 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
     @WorkerThread
     /*pkg*/ void dispatchUpdate(T newT) {
         if (containId(newT.getId())) {
-            dispatchNonStructuralChange(newT.getId());
+            dispatchNonStructuralChange(ImmutableLongTreeSet.singleton(newT.getId()));
         }
     }
 
     @WorkerThread
-    /*pkg*/ boolean dispatchStructuralChange(@NonNull final LongSet idsOfInsertedOrRemoved) {
+    /*pkg*/ boolean dispatchStructuralChange(@NonNull final LongSet idsOfChanged) {
         final LazyList<T> oldList = list;
         final LazyList<T> newList = query.forCurrentThread().listLazy();
         final long[] oldIds = ids;
@@ -107,16 +107,16 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
 
         LiveDataLayer.BaseListSubscriber<? super T> sub = subscriber;
         final Object payload = sub instanceof LiveDataLayer.ListSubscriberWithPayload
-                ? ((LiveDataLayer.ListSubscriberWithPayload) sub).calculatePayload(uList, newIds, idsOfInsertedOrRemoved)
+                ? ((LiveDataLayer.ListSubscriberWithPayload) sub).calculatePayload(uList, newIds, idsOfChanged)
                 : null;
         handler.post(new Runnable() {
             @Override
             public void run() {
                 LiveDataLayer.BaseListSubscriber<? super T> sub = subscriber;
                 if (sub instanceof LiveDataLayer.ListSubscriberWithPayload) {
-                    ((LiveDataLayer.ListSubscriberWithPayload) sub).onStructuralChange(uList, uIds, idsOfInsertedOrRemoved, payload);
+                    ((LiveDataLayer.ListSubscriberWithPayload) sub).onStructuralChange(uList, uIds, idsOfChanged, payload);
                 } else if (sub instanceof LiveDataLayer.ListSubscriber) {
-                    ((LiveDataLayer.ListSubscriber) sub).onStructuralChange(uList, uIds, idsOfInsertedOrRemoved);
+                    ((LiveDataLayer.ListSubscriber) sub).onStructuralChange(uList, uIds, idsOfChanged);
                 }
                 oldList.close();
             }
@@ -136,11 +136,8 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
     }
 
     @WorkerThread
-    /*pkg*/ void dispatchNonStructuralChange(final Long idOfChanged) {
-        // simple update can lead to move due to change of a value given query ordered by
-        final LongSet idsOfChanged = idOfChanged == null
-                ? ImmutableLongTreeSet.empty() : ImmutableLongTreeSet.singleton(idOfChanged);
-
+    /*pkg*/ void dispatchNonStructuralChange(final LongSet idsOfChanged) {
+        // simple update can lead to move due to change of a value given query 'ordered by'
         boolean structuralChangeDispatched = orderedQuery && dispatchStructuralChange(idsOfChanged);
         if (!structuralChangeDispatched) {
             final LazyList<T> list = this.list;

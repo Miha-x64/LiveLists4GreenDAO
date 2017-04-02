@@ -64,8 +64,9 @@ public abstract class LiveAdapter<
                     }
                 }
                 if (changed != changedItemIds.size()) {
-                    throw new IllegalStateException("changedItemIds has size of " + changedItemIds.size() +
-                            " but we changed only " + changed);
+                    throw new IllegalStateException("LiveAdapter.onChange: " +
+                            "changedItemIds has size of " + changedItemIds.size() +
+                            " but we were able to notify only " + changed + " items");
                 }
             }
         };
