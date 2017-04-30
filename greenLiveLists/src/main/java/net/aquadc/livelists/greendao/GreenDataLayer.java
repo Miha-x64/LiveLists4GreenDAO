@@ -117,7 +117,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
     }
 
     @Override public int size(Query<T> query) {
-        LazyList<T> ll = query.listLazyUncached();
+        LazyList<T> ll = query.forCurrentThread().listLazyUncached();
         int size = ll.size(); // fixme?
         ll.close();
         return size;
