@@ -92,15 +92,15 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
             }
         }
 
-        if (newSize == oldSize) { // no insertions/deletions
-            if (Arrays.equals(oldIds, newIds)) { // no moves
-                newList.close();
-                return false; // change not affected this query
-            }
-        }
-
         list = newList;
         ids = newIds;
+
+        if (newSize == oldSize) { // no insertions/deletions
+            if (Arrays.equals(oldIds, newIds)) { // no moves
+                oldList.close();
+                return false; // change not affected this query order. But we've already updated list!
+            }
+        }
 
         final List<T> uList = unmodifiableList(newList);
         final long[] uIds = newIds.clone(); // fixme
@@ -137,8 +137,8 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
 
     @WorkerThread
     /*pkg*/ void dispatchNonStructuralChange(final LongSet idsOfChanged) {
-        // simple update can lead to move due to change of a value given query 'ordered by'
-        boolean structuralChangeDispatched = orderedQuery && dispatchStructuralChange(idsOfChanged);
+        // simple update can lead to move due to change of a value given in query's 'ordered by'
+        boolean structuralChangeDispatched = dispatchStructuralChange(idsOfChanged) && orderedQuery;
         if (!structuralChangeDispatched) {
             final LazyList<T> list = this.list;
             handler.post(new Runnable() {

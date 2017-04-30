@@ -22,7 +22,7 @@ import static net.aquadc.livelists.greendao.GreenDataLayer.required;
 
 public abstract class LiveAdapter<
         MDL/* extends LiveDataLayer.WithId*/,
-        VH extends LiveAdapter.ViewHolder<MDL>>
+        VH extends RecyclerView.ViewHolder>
         extends RecyclerView.Adapter<VH> {
 
     @Nullable private LiveList<? extends MDL> liveList;
@@ -71,16 +71,17 @@ public abstract class LiveAdapter<
 
                 int changed = 0;
                 for (int i = 0, size = newList.size(); i < size; i++) {
-                    if (changedItemIds.contains(((LiveDataLayer.WithId) newList.get(i)).getId())) {
+                    if (changedItemIds.contains(((LiveDataLayer.WithId) newList.get(i)).getId())) { // fixme: looks ugly & inefficient
                         //                       ^ the only place where checkcast to WithId used
                         notifyItemChanged(i);
                         changed++;
                     }
                 }
                 if (changed != changedItemIds.size()) {
-                    throw new IllegalStateException("LiveAdapter.onChange: " +
-                            "changedItemIds has size of " + changedItemIds.size() +
-                            " but we were able to notify only " + changed + " items");
+                    Log.e("LiveAdapter", "onChange: changedItemIds has size of " +
+                            changedItemIds.size() + " but we were able to notify only " + changed +
+                            " items. It's OK only if updated list part & a part being observed" +
+                            " are differ.");
                 }
             }
         };
@@ -124,7 +125,8 @@ public abstract class LiveAdapter<
     }
 
     @Override public void onBindViewHolder(VH holder, int position) {
-        holder.bindInternal(list.get(position));
+        // I could extend `ViewHolder<MDL>`, but this would prohibit use of ordinary adapters.
+        ((ViewHolder<MDL>) holder).bindInternal(list.get(position));
     }
 
     @Override public int getItemViewType(int position) {
@@ -200,7 +202,7 @@ public abstract class LiveAdapter<
         /*pkg*/ MDL model;
         @Override /*pkg*/ void bindInternal(MDL model) {
             this.model = model;
-            bind(model);
+            super.bindInternal(model);
         }
         @Override /*pkg*/ void onRecycleInternal() {
             onRecycle();
