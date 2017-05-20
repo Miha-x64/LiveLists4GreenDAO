@@ -2,6 +2,6 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$USER_HOME$/IdeaProjects/Blitz" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../IdeaProjects/Blitz" vcs="Git" />
   </component>
 </project>

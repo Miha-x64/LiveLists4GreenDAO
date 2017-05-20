@@ -4,9 +4,10 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/GreenReactive.iml" filepath="$PROJECT_DIR$/GreenReactive.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$USER_HOME$/IdeaProjects/Blitz/blitz.iml" filepath="$USER_HOME$/IdeaProjects/Blitz/blitz.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../IdeaProjects/Blitz/blitz.iml" filepath="$PROJECT_DIR$/../../IdeaProjects/Blitz/blitz.iml" />
       <module fileurl="file://$PROJECT_DIR$/greenLiveLists/greenLiveLists.iml" filepath="$PROJECT_DIR$/greenLiveLists/greenLiveLists.iml" />
       <module fileurl="file://$PROJECT_DIR$/liveLists/liveLists.iml" filepath="$PROJECT_DIR$/liveLists/liveLists.iml" />
+      <module fileurl="file://$PROJECT_DIR$/liveListsAndroid/liveListsAndroid.iml" filepath="$PROJECT_DIR$/liveListsAndroid/liveListsAndroid.iml" />
     </modules>
   </component>
 </project>

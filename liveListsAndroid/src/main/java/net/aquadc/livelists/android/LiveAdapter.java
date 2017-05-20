@@ -1,4 +1,4 @@
-package net.aquadc.livelists.greendao;
+package net.aquadc.livelists.android;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -13,8 +13,6 @@ import net.aquadc.livelists.LiveDataLayer;
 import net.aquadc.livelists.LiveList;
 
 import java.util.List;
-
-import static net.aquadc.livelists.greendao.GreenDataLayer.required;
 
 /**
  * Created by miha on 05.02.17
@@ -45,10 +43,15 @@ public abstract class LiveAdapter<
             }
             @Override public void onStructuralChange(
                     List<MDL> newList, long[] newIds, LongSet changedItemIds, DiffUtil.DiffResult diff) {
+
+                int oldSize = ids == null ? 0 : ids.length;
+
                 list = newList;
                 ids = newIds;
 
-                if (diff != null) {
+                if (diff == null) {
+                    notifyItemRangeInserted(0, newIds.length);
+                } else {
                     final RecyclerView.LayoutManager lm = recycler.getLayoutManager();
 
                     int pos = -1;
@@ -71,7 +74,8 @@ public abstract class LiveAdapter<
 
                 int changed = 0;
                 for (int i = 0, size = newList.size(); i < size; i++) {
-                    if (changedItemIds.contains(((LiveDataLayer.WithId) newList.get(i)).getId())) { // fixme: looks ugly & inefficient
+                    // fixme: looks ugly & inefficient, it's better to iterate long[] ids
+                    if (changedItemIds.contains(((LiveDataLayer.WithId) newList.get(i)).getId())) {
                         //                       ^ the only place where checkcast to WithId used
                         notifyItemChanged(i);
                         changed++;
@@ -85,18 +89,40 @@ public abstract class LiveAdapter<
                 }
             }
         };
+        super.setHasStableIds(true);
     }
 
+    /**
+     * A way to use this adapter like an ordinary ListAdapter.
+     * @param list data
+     */
     protected LiveAdapter(List<? extends MDL> list) {
-        // a way to use this adapter like an ordinary ListAdapter
         this.liveList = null;
         this.subscriber = null;
 
         this.list = list;
+        super.setHasStableIds(true);
     }
 
+    @Override public final void setHasStableIds(boolean hasStableIds) {
+        throw new UnsupportedOperationException("Always using stable IDs.");
+    }
+
+    @Override public long getItemId(int position) {
+        return ids == null ? position : ids[position];
+    }
+
+    /**
+     * A list with actual data. Gets filled in onChange (in live mode) or from constructor (ListAdapter mode).
+     */
     /*pkg*/ List<? extends MDL> list;
+    /**
+     * IDs, which are required for diff computation.
+     * Gets filled in onChange along with {@link #list} field, {@code null} in ListAdapter mode.
+     * Used also as 'stable ids'.
+     */
     /*pkg*/ long[] ids;
+
     /*pkg*/ RecyclerView recycler;
 
     private static final class DiffUtilCallback<MDL> extends DiffUtil.Callback {
@@ -159,11 +185,13 @@ public abstract class LiveAdapter<
 
     public void changeList(LiveList<? extends MDL> newList) {
         if (liveList == null) {
-            throw new NullPointerException("Can move to another list only if in reactive mode.");
+            throw new NullPointerException("Can move to another list only if in live mode.");
         }
         liveList.moveTo(subscriber, required(newList, "newList"));
         this.liveList = newList;
     }
+
+    // todo: changeList(List)
 
     protected void onItemClick(MDL model, int adapterPosition) {}
 
@@ -208,5 +236,10 @@ public abstract class LiveAdapter<
             onRecycle();
             model = null;
         }
+    }
+
+    /*pkg*/ static <T> T required(T whatever, String name) {
+        if (whatever == null) throw new NullPointerException(name + " required, got null");
+        return whatever;
     }
 }

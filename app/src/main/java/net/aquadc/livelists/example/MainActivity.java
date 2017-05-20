@@ -21,14 +21,21 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import net.aquadc.blitz.MutableLongSet;
+import net.aquadc.blitz.impl.MutableLongHashSet;
+
 import net.aquadc.livelists.LiveDataLayer;
+import net.aquadc.livelists.android.LiveAdapter;
+import net.aquadc.livelists.android.LoadingMoreLiveAdapter;
 import net.aquadc.livelists.greendao.GreenDataLayer;
 import net.aquadc.livelists.greendao.GreenLiveList;
-import net.aquadc.livelists.greendao.LiveAdapter;
 
 import org.greenrobot.greendao.query.Query;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Random;
 
 public final class MainActivity extends AppCompatActivity {
 
@@ -36,7 +43,7 @@ public final class MainActivity extends AppCompatActivity {
     GreenDataLayer<Item> dataLayer;
     LiveDataLayer.SingleSubscriber<Item> subscriber;
     private RecyclerView recycler;
-    LiveAdapter<Item, ItemHolder> adapter;
+    LoadingMoreLiveAdapter<Item, ItemHolder> adapter;
     ItemDao dao;
 
     TextView zeroItem;
@@ -47,7 +54,9 @@ public final class MainActivity extends AppCompatActivity {
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
 
         ImageButton fab = (ImageButton) findViewById(R.id.fab);
-        fab.setOnClickListener(clickListener);
+        ClickListener listener = new ClickListener();
+        fab.setOnClickListener(listener);
+        fab.setOnLongClickListener(listener);
 
         final App app = ((App) getApplication());
         GreenDataLayer<Item> dataLayer = app.getItemLayer();
@@ -70,10 +79,17 @@ public final class MainActivity extends AppCompatActivity {
         recycler.setLayoutManager(new LinearLayoutManager(this));
 
         dao = app.getItemDao();
-        adapter = new LiveAdapter<Item, ItemHolder>(
+        adapter = new LoadingMoreLiveAdapter<Item, ItemHolder>(
                 new GreenLiveList<>(dataLayer, dao.queryBuilder().orderAsc(ItemDao.Properties.Order).build())) {
-            @Override
-            public ItemHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            @Override protected RecyclerView.ViewHolder createLoadingViewHolder(ViewGroup parent) {
+                View view = getLayoutInflater()
+                        .inflate(android.R.layout.simple_list_item_1, parent, false);
+                ((TextView) view).setText("loading more...");
+                return new RecyclerView.ViewHolder(view) {
+                };
+            }
+
+            @Override protected ItemHolder createMdlViewHolder(ViewGroup parent, int viewType) {
                 return new ItemHolder(getLayoutInflater()
                         .inflate(R.layout.simple_list_item_2, parent, false));
             }
@@ -199,9 +215,8 @@ public final class MainActivity extends AppCompatActivity {
         return super.onCreateOptionsMenu(menu);
     }
 
-    private final View.OnClickListener clickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
+    private final class ClickListener implements View.OnClickListener, View.OnLongClickListener {
+        @Override public void onClick(View v) {
             switch (v.getId()) {
                 case R.id.fab:
                     final EditText et = new EditText(MainActivity.this);
@@ -221,5 +236,50 @@ public final class MainActivity extends AppCompatActivity {
                     throw new UnsupportedOperationException();
             }
         }
-    };
+
+        @Override public boolean onLongClick(View v) {
+            switch (v.getId()) {
+                case R.id.fab:
+                    adapter.setLoadingMore(true);
+                    final Handler handler = new Handler();
+                    ins(handler);
+                    handler.postDelayed(new Runnable() {
+                        @Override public void run() {
+                            ins(handler);
+                            handler.postDelayed(new Runnable() {
+                                @Override public void run() {
+                                    adapter.setLoadingMore(false);
+                                }
+                            }, 2500);
+                        }
+                    }, 500);
+                    break;
+
+                    default:
+                        throw new UnsupportedOperationException();
+            }
+            return true;
+        }
+
+        /*pkg*/ void ins(Handler handler) {
+            final List<Item> items = new ArrayList<>();
+            Random random = new Random();
+            for (int i = 0; i < 10; i++) {
+                items.add(new Item(null, Long.toString(random.nextLong(), 36), random.nextInt(5)));
+            }
+            dao.saveInTx(items);
+            final MutableLongSet ids = new MutableLongHashSet();
+            for (int i = 0; i < 10; i++) {
+                ids.add(items.get(i).getId());
+            }
+            dataLayer.saved(ids);
+
+            handler.postDelayed(new Runnable() {
+                @Override public void run() {
+                    dao.deleteInTx(items);
+                    dataLayer.removed(ids);
+                }
+            }, 2000);
+        }
+    }
 }
