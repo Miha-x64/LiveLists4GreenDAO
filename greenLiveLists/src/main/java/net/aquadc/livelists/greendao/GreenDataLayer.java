@@ -262,7 +262,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
             for (final ListSubscription<? super T> sub: new HashMap<>(listSubscriptions).values()) {
                 switch (kind) {
                     case INSERTION:
-                        sub.dispatchStructuralChange(ImmutableLongTreeSet.singleton((Long) payload));
+                        sub.dispatchStructuralOrNonStructuralChange(ImmutableLongTreeSet.singleton((Long) payload));
                         break;
 
                     case UPDATE:
@@ -270,12 +270,12 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
                         break;
 
                     case REMOVAL:
-                        sub.dispatchStructuralChange(ImmutableLongTreeSet.singleton((Long) payload));
+                        sub.dispatchStructuralOrNonStructuralChange(ImmutableLongTreeSet.singleton((Long) payload));
                         break;
 
                     case INSERTION_OR_UPDATE:
                         Long id = payload instanceof Long ? (Long) payload : ((T) payload).getId();
-                        sub.dispatchNonStructuralChange(ImmutableLongTreeSet.singleton(id));
+                        sub.dispatchStructuralOrNonStructuralChange(ImmutableLongTreeSet.singleton(id));
                         break;
 
                     default:
@@ -287,7 +287,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
         @WorkerThread
         private void dispatchMultiChange(LongSet ids) {
             for (final ListSubscription<? super T> sub: new HashMap<>(listSubscriptions).values()) {
-                sub.dispatchNonStructuralChange(ids); // this will try to dispatch a structural change first
+                sub.dispatchStructuralOrNonStructuralChange(ids); // this will try to dispatch a structural change first
             }
         }
 

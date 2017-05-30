@@ -3,6 +3,7 @@ package net.aquadc.livelists.greendao;
 import android.database.Cursor;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 
 import net.aquadc.blitz.LongSet;
@@ -72,12 +73,12 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
     @WorkerThread
     /*pkg*/ void dispatchUpdate(T newT) {
         if (containId(newT.getId())) {
-            dispatchNonStructuralChange(ImmutableLongTreeSet.singleton(newT.getId()));
+            dispatchStructuralOrNonStructuralChange(ImmutableLongTreeSet.singleton(newT.getId()));
         }
     }
 
-    @WorkerThread
-    /*pkg*/ boolean dispatchStructuralChange(@NonNull final LongSet idsOfChanged) {
+    @WorkerThread @Nullable
+    /*pkg*/ LazyList<T> dispatchStructuralChangeOrReturnStructurallyUnchangedList(@NonNull final LongSet idsOfChanged) {
         final LazyList<T> oldList = list;
         final LazyList<T> newList = query.forCurrentThread().listLazy();
         final long[] oldIds = ids;
@@ -95,11 +96,8 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
         list = newList;
         ids = newIds;
 
-        if (newSize == oldSize) { // no insertions/deletions
-            if (Arrays.equals(oldIds, newIds)) { // no moves
-                oldList.close();
-                return false; // change not affected this query order. But we've already updated list!
-            }
+        if (newSize == oldSize && Arrays.equals(oldIds, newIds)) { // no insertions/deletions, no moves
+            return newList; // change not affected this query order. But we've already updated list!
         }
 
         final List<T> uList = unmodifiableList(newList);
@@ -121,7 +119,7 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
                 oldList.close();
             }
         });
-        return true;
+        return null;
     }
 
     @WorkerThread
@@ -136,15 +134,17 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
     }
 
     @WorkerThread
-    /*pkg*/ void dispatchNonStructuralChange(final LongSet idsOfChanged) {
+    /*pkg*/ void dispatchStructuralOrNonStructuralChange(final LongSet idsOfChanged) {
         // simple update can lead to move due to change of a value given in query's 'ordered by'
-        boolean structuralChangeDispatched = dispatchStructuralChange(idsOfChanged) && orderedQuery;
-        if (!structuralChangeDispatched) {
-            final LazyList<T> list = this.list;
+        final LazyList<T> newList = dispatchStructuralChangeOrReturnStructurallyUnchangedList(idsOfChanged);
+        if (newList != null) {
+            final LazyList<T> oldList = this.list;
+            this.list = newList;
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    subscriber.onChange(list, idsOfChanged);
+                    subscriber.onChange(newList, idsOfChanged);
+                    oldList.close();
                 }
             });
         }
@@ -163,7 +163,7 @@ import static org.greenrobot.greendao.query.GreenLists$Internal$QuerySpy.getSql;
         this.idQuery = "SELECT T.\"_id\" FROM " + _FROM_.split(sql, 2)[1];
         this.idQueryParams = getParameters(newQuery);
         this.orderedQuery = sql.contains("ORDER BY");
-        dispatchStructuralChange(ImmutableLongTreeSet.empty());
+        dispatchStructuralOrNonStructuralChange(ImmutableLongTreeSet.empty());
     }
 
     private static final long[] EMPTY_LONGS = {};

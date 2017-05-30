@@ -43,7 +43,7 @@ public final class MainActivity extends AppCompatActivity {
     GreenDataLayer<Item> dataLayer;
     LiveDataLayer.SingleSubscriber<Item> subscriber;
     private RecyclerView recycler;
-    LoadingMoreLiveAdapter<Item, ItemHolder> adapter;
+    LoadingMoreLiveAdapter<Item> adapter;
     ItemDao dao;
 
     TextView zeroItem;
@@ -79,7 +79,7 @@ public final class MainActivity extends AppCompatActivity {
         recycler.setLayoutManager(new LinearLayoutManager(this));
 
         dao = app.getItemDao();
-        adapter = new LoadingMoreLiveAdapter<Item, ItemHolder>(
+        adapter = new LoadingMoreLiveAdapter<Item>(
                 new GreenLiveList<>(dataLayer, dao.queryBuilder().orderAsc(ItemDao.Properties.Order).build())) {
             @Override protected RecyclerView.ViewHolder createLoadingViewHolder(ViewGroup parent) {
                 View view = getLayoutInflater()

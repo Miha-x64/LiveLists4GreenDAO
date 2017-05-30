@@ -19,9 +19,8 @@ import java.util.List;
  */
 
 public abstract class LiveAdapter<
-        MDL/* extends LiveDataLayer.WithId*/,
-        VH extends RecyclerView.ViewHolder>
-        extends RecyclerView.Adapter<VH> {
+        MDL/* extends LiveDataLayer.WithId*/>
+        extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     @Nullable private LiveList<? extends MDL> liveList;
     @Nullable private final LiveDataLayer.ListSubscriberWithPayload<MDL, DiffUtil.DiffResult> subscriber;
@@ -104,7 +103,7 @@ public abstract class LiveAdapter<
         super.setHasStableIds(true);
     }
 
-    @Override public final void setHasStableIds(boolean hasStableIds) {
+    @Deprecated @Override public final void setHasStableIds(boolean hasStableIds) {
         throw new UnsupportedOperationException("Always using stable IDs.");
     }
 
@@ -150,7 +149,7 @@ public abstract class LiveAdapter<
         }
     }
 
-    @Override public void onBindViewHolder(VH holder, int position) {
+    @Override public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
         // I could extend `ViewHolder<MDL>`, but this would prohibit use of ordinary adapters.
         ((ViewHolder<MDL>) holder).bindInternal(list.get(position));
     }
@@ -159,7 +158,7 @@ public abstract class LiveAdapter<
         return getItemViewType(list.get(position));
     }
 
-    protected int getItemViewType(MDL model) {
+    protected int getItemViewType(@NonNull MDL model) {
         return 0;
     }
 
@@ -185,13 +184,19 @@ public abstract class LiveAdapter<
 
     public void changeList(LiveList<? extends MDL> newList) {
         if (liveList == null) {
-            throw new NullPointerException("Can move to another list only if in live mode.");
+            throw new IllegalStateException("Can move to another live list only if in live mode.");
         }
         liveList.moveTo(subscriber, required(newList, "newList"));
         this.liveList = newList;
     }
 
-    // todo: changeList(List)
+    public void changeList(List<? extends MDL> newList) { // just like changing adapter
+        if (liveList != null) {
+            throw new IllegalStateException("Can move to another list only if in list mode.");
+        }
+        this.list = newList;
+        notifyDataSetChanged();
+    }
 
     protected void onItemClick(MDL model, int adapterPosition) {}
 
@@ -211,7 +216,7 @@ public abstract class LiveAdapter<
     }
 
     public abstract static class ClickableViewHolder<MDL> extends ViewHolder<MDL> {
-        public ClickableViewHolder(final LiveAdapter<MDL, ?> adapter, View itemView) {
+        public ClickableViewHolder(final LiveAdapter<MDL> adapter, View itemView) {
             super(itemView);
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
