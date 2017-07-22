@@ -37,13 +37,15 @@ public abstract class LiveAdapter<
                 }
                 final long[] oldIds = ids;
 
+                if (logUpdates) {
+                    Log.d(LiveAdapter.this.toString(), "calculatePayload: " + changedItemIds);
+                }
+
                 return DiffUtil.calculateDiff(
                         new DiffUtilCallback<>(oldList, newList, oldIds, newIds, changedItemIds));
             }
             @Override public void onStructuralChange(
                     List<MDL> newList, long[] newIds, LongSet changedItemIds, DiffUtil.DiffResult diff) {
-
-                int oldSize = ids == null ? 0 : ids.length;
 
                 list = newList;
                 ids = newIds;
@@ -67,6 +69,10 @@ public abstract class LiveAdapter<
                         recycler.scrollToPosition(pos);
                     }
                 }
+
+                if (logUpdates) {
+                    Log.d(LiveAdapter.this.toString(), "onStructuralChange: " + changedItemIds + ", " + diff);
+                }
             }
             @Override public void onChange(List<? extends MDL> newList, LongSet changedItemIds) {
                 list = newList;
@@ -85,6 +91,10 @@ public abstract class LiveAdapter<
                             changedItemIds.size() + " but we were able to notify only " + changed +
                             " items. It's OK only if updated list part & a part being observed" +
                             " are differ.");
+                }
+
+                if (logUpdates) {
+                    Log.d(LiveAdapter.this.toString(), "onChange: " + changedItemIds);
                 }
             }
         };
@@ -123,6 +133,13 @@ public abstract class LiveAdapter<
     /*pkg*/ long[] ids;
 
     /*pkg*/ RecyclerView recycler;
+
+    private boolean logUpdates = false;
+
+    protected void logUpdates() {
+        Log.d(toString(), "updates logging enabled");
+        logUpdates = true;
+    }
 
     private static final class DiffUtilCallback<MDL> extends DiffUtil.Callback {
         private final List<? extends MDL> oldList;
@@ -182,6 +199,12 @@ public abstract class LiveAdapter<
 //        layer.unsubscribe(subscriber);
     }
 
+    @Override
+    public void onViewRecycled(RecyclerView.ViewHolder holder) {
+        super.onViewRecycled(holder);
+        ((ViewHolder) holder).onRecycleInternal();
+    }
+
     public void changeList(LiveList<? extends MDL> newList) {
         if (liveList == null) {
             throw new IllegalStateException("Can move to another live list only if in live mode.");
@@ -237,7 +260,7 @@ public abstract class LiveAdapter<
             this.model = model;
             super.bindInternal(model);
         }
-        @Override /*pkg*/ void onRecycleInternal() {
+        @Override /*pkg*/ void onRecycleInternal() { // fixme: unused!!
             onRecycle();
             model = null;
         }

@@ -79,4 +79,9 @@ public abstract class LoadingMoreLiveAdapter<MDL>
         if (getItemViewType(position) == LOADING_ITEM_VIEW_TYPE) return; // no binding for loading VH
         super.onBindViewHolder(holder, position);
     }
+
+    @Override public void onViewRecycled(RecyclerView.ViewHolder holder) {
+        if (holder.getItemViewType() == LOADING_ITEM_VIEW_TYPE) return;
+        super.onViewRecycled(holder);
+    }
 }
