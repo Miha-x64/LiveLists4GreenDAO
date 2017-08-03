@@ -13,10 +13,10 @@ public interface LiveDataLayer<T extends LiveDataLayer.WithId, QUERY> {
     void save(T t);
     void remove(T t);
 
-    void subscribeOnSingle(Long pk, SingleSubscriber<T> subscriber);
-    void unsubscribe(SingleSubscriber<T> subscriber);
+    void subscribeOnSingle(Long pk, SingleSubscriber<? super T> subscriber);
+    void unsubscribe(SingleSubscriber<? super T> subscriber);
 
-    List<T> snapshot(QUERY query);
+    List<? extends T> snapshot(QUERY query);
     int size(QUERY query);
 
     void subscribeOnList(QUERY query, BaseListSubscriber<? super T> subscriber);
@@ -43,11 +43,11 @@ public interface LiveDataLayer<T extends LiveDataLayer.WithId, QUERY> {
          * @param newIds            IDs of all items (to detect structural changes)
          * @param changedItemIds    IDs of changed items
          */
-        void onStructuralChange(List<T> newList, long[] newIds, LongSet changedItemIds);
+        void onStructuralChange(List<? extends T> newList, long[] newIds, LongSet changedItemIds);
     }
     interface ListSubscriberWithPayload<T, PL> extends BaseListSubscriber<T> {
-        void onStructuralChange(List<T> newList, long[] newIds, LongSet changedItemIds, PL payload);
-        PL calculatePayload(List<T> newList, long[] newIds, LongSet changedItemIds);
+        void onStructuralChange(List<? extends T> newList, long[] newIds, LongSet changedItemIds, PL payload);
+        PL calculatePayload(List<? extends T> newList, long[] newIds, LongSet changedItemIds);
     }
     interface BaseListSubscriber<T> {
         /**

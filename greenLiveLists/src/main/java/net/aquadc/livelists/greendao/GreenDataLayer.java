@@ -47,7 +47,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
         handlerThread.start();
         // todo: start a thread with a first subscriber, stop after last unsubscriber
     }
-    /*pkg*/ final Map<SingleSubscriber<T>, Pair<Long, Handler>> singleSubscriptions = new ConcurrentHashMap<>();
+    /*pkg*/ final Map<SingleSubscriber<? super T>, Pair<Long, Handler>> singleSubscriptions = new ConcurrentHashMap<>();
     /*pkg*/ final Map<BaseListSubscriber<? super T>, ListSubscription<? super T>> listSubscriptions = new ConcurrentHashMap<>();
     /*pkg*/ final Set<Long> enqueuedForRemoval = new CopyOnWriteArraySet<>();
     private final Handler handler;
@@ -70,7 +70,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
 
     @Override public void remove(T t) {
         Long id = required(t, "object to remove").getId();
-        for (Map.Entry<SingleSubscriber<T>, Pair<Long, Handler>> entry : new HashMap<>(singleSubscriptions).entrySet()) {
+        for (Map.Entry<SingleSubscriber<? super T>, Pair<Long, Handler>> entry : new HashMap<>(singleSubscriptions).entrySet()) {
             if (entry.getValue().first.equals(id)) {
                 throw new IllegalStateException("Can't remove " + t + ": it is currently being observed by " +
                         entry.getKey() + ". Unsubscribe first.");
@@ -84,7 +84,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
 
     // single record
 
-    @Override public void subscribeOnSingle(Long pk, SingleSubscriber<T> subscriber) {
+    @Override public void subscribeOnSingle(Long pk, SingleSubscriber<? super T> subscriber) {
         required(pk, "pk");
         required(subscriber, "subscriber");
         if (enqueuedForRemoval.contains(pk)) {
@@ -101,7 +101,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
             throw new IllegalStateException(subscriber + " is already subscribed."); // broken state
         }
     }
-    @Override public void unsubscribe(SingleSubscriber<T> subscriber) {
+    @Override public void unsubscribe(SingleSubscriber<? super T> subscriber) {
         Pair<Long, Handler> data = singleSubscriptions.remove(required(subscriber, "subscriber"));
         if (data == null) {
             throw new NoSuchElementException(subscriber + " is not subscribed.");
@@ -112,7 +112,7 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
     // list
 
 
-    @Override public List<T> snapshot(Query<T> query) {
+    @Override public List<? extends T> snapshot(Query<T> query) {
         return query.forCurrentThread().list();
     }
 
@@ -244,9 +244,9 @@ public final class GreenDataLayer<T extends GreenDataLayer.WithId> implements Li
                     final T newT = (T) payload;
                     Long id = newT.getId();
                     // notify items that listen for single changes
-                    for (final Map.Entry<SingleSubscriber<T>, Pair<Long, Handler>> entry : new HashMap<>(singleSubscriptions).entrySet()) {
+                    for (final Map.Entry<SingleSubscriber<? super T>, Pair<Long, Handler>> entry : new HashMap<>(singleSubscriptions).entrySet()) {
                         Pair<Long, Handler> val = entry.getValue();
-                        final SingleSubscriber<T> subscriber = entry.getKey();
+                        final SingleSubscriber<? super T> subscriber = entry.getKey();
                         if (val.first.equals(id)) {
                             val.second.post(new Runnable() {
                                 @Override

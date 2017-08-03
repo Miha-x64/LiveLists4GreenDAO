@@ -7,11 +7,7 @@ import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.DividerItemDecoration;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.SearchView;
-import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.*;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -19,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import net.aquadc.blitz.MutableLongSet;
@@ -76,20 +73,19 @@ public final class MainActivity extends AppCompatActivity {
         };
 
         recycler = (RecyclerView) findViewById(R.id.recycler);
-        recycler.setLayoutManager(new LinearLayoutManager(this));
+        recycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, true));
 
         dao = app.getItemDao();
         adapter = new LoadingMoreLiveAdapter<Item>(
                 new GreenLiveList<>(dataLayer, dao.queryBuilder().orderAsc(ItemDao.Properties.Order).build())) {
-            @Override protected RecyclerView.ViewHolder createLoadingViewHolder(ViewGroup parent) {
-                View view = getLayoutInflater()
-                        .inflate(android.R.layout.simple_list_item_1, parent, false);
-                ((TextView) view).setText("loading more...");
-                return new RecyclerView.ViewHolder(view) {
-                };
+            @Override protected RecyclerView.ViewHolder createLoadingViewHolder(@NonNull ViewGroup parent) {
+                ProgressBar view = new ProgressBar(parent.getContext(), null, android.R.attr.progressBarStyleHorizontal);
+                view.setIndeterminate(true);
+                view.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                return new RecyclerView.ViewHolder(view) {};
             }
 
-            @Override protected ItemHolder createMdlViewHolder(ViewGroup parent, int viewType) {
+            @Override protected ItemHolder createMdlViewHolder(@NonNull ViewGroup parent, int viewType) {
                 return new ItemHolder(getLayoutInflater()
                         .inflate(R.layout.simple_list_item_2, parent, false));
             }
@@ -98,7 +94,7 @@ public final class MainActivity extends AppCompatActivity {
         recycler.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
     }
 
-    private class ItemHolder extends LiveAdapter.ViewHolder<Item> implements View.OnClickListener {
+    private final class ItemHolder extends LiveAdapter.ViewHolder<Item> implements View.OnClickListener {
         private final TextView text1;
         private final TextView text2;
         /*pkg*/ ItemHolder(View itemView) {
@@ -264,15 +260,17 @@ public final class MainActivity extends AppCompatActivity {
         /*pkg*/ void ins(Handler handler) {
             final List<Item> items = new ArrayList<>();
             Random random = new Random();
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 6; i++) {
                 items.add(new Item(null, Long.toString(random.nextLong(), 36), random.nextInt(5)));
             }
             dao.saveInTx(items);
             final MutableLongSet ids = new MutableLongHashSet();
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < items.size(); i++) {
                 ids.add(items.get(i).getId());
             }
+
             dataLayer.saved(ids);
+            adapter.postLoadingMore(false);
 
             handler.postDelayed(new Runnable() {
                 @Override public void run() {

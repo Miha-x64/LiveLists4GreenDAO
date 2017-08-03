@@ -31,7 +31,7 @@ public final class GreenLiveList<T extends LiveDataLayer.WithId> implements Live
         layer.unsubscribe(subscriber);
     }
 
-    @Override public List<T> snapshot() {
+    @Override public List<? extends T> snapshot() {
         return layer.snapshot(query);
     }
 
@@ -42,7 +42,7 @@ public final class GreenLiveList<T extends LiveDataLayer.WithId> implements Live
     @Override
     public void moveTo(LiveDataLayer.BaseListSubscriber<? super T> subscriber, LiveList<?> another) {
         required(subscriber, "subscriber");
-        if (!(another instanceof LiveList)) {
+        if (!(another instanceof GreenLiveList)) {
             throw new IllegalArgumentException("Can move only to a LiveList of the same type. " +
                     "This is GreenLiveList, another is " + (another == null ? "null" : another.getClass().getSimpleName()));
         }

@@ -3,7 +3,7 @@ apply plugin: 'org.greenrobot.greendao'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    buildToolsVersion "25.0.3"
     defaultConfig {
         applicationId "net.aquadc.greenreactive"
         minSdkVersion 11 // was 9, set 11 because of 'selectableItemBackground'

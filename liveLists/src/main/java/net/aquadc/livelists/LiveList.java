@@ -12,6 +12,6 @@ public interface LiveList<T extends LiveDataLayer.WithId> {
 
     // unsubscribe from this, subscribe to another, notify about a change
     void moveTo(LiveDataLayer.BaseListSubscriber<? super T> subscriber, LiveList<?> another);
-    List<T> snapshot();
+    List<? extends T> snapshot();
     int size();
 }

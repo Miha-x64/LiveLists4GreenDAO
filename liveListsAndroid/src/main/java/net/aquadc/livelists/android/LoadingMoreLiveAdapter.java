@@ -2,6 +2,7 @@ package net.aquadc.livelists.android;
 
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.ViewGroup;
 import net.aquadc.livelists.LiveList;
 
@@ -46,6 +47,7 @@ public abstract class LoadingMoreLiveAdapter<MDL>
     }
 
     public final void setLoadingMore(boolean loadingMore) {
+        if (isLoggingEnabled()) Log.d(toString(), "setLoadingMore: " + this.loadingMore + " -> " + loadingMore);
         if (this.loadingMore != loadingMore) {
             this.loadingMore = loadingMore;
             if (loadingMore) notifyItemInserted(super.getItemCount());
@@ -54,16 +56,29 @@ public abstract class LoadingMoreLiveAdapter<MDL>
     }
 
     @Override public int getItemCount() {
-        return super.getItemCount() + (loadingMore ? 1 : 0);
+        int actualItemCount = super.getItemCount();
+        if (isLoggingEnabled()) Log.d(toString(), "getItemCount: " + actualItemCount + " + " + loadingMore);
+        return actualItemCount + (loadingMore ? 1 : 0);
     }
 
     @Override
     public long getItemId(int position) {
-        return loadingMore && position == super.getItemCount() ? LOADING_ITEM_ID : super.getItemId(position);
+        boolean isLoadingIndicator = loadingMore && position == super.getItemCount();
+        if (isLoggingEnabled()) {
+            Log.d(toString(), "getItemId: item at " + position + " is " +
+                    (isLoadingIndicator ? "loading indicator" : "#" + super.getItemId(position)));
+        }
+        return isLoadingIndicator ? LOADING_ITEM_ID : super.getItemId(position);
     }
 
     @Override public int getItemViewType(int position) {
-        if (position == super.getItemCount()) return LOADING_ITEM_VIEW_TYPE;
+        boolean isLoadingIndicator = loadingMore && position == super.getItemCount();
+        if (isLoggingEnabled()) {
+            Log.d(toString(), "getItemViewType: item at " + position +
+                    (isLoadingIndicator ? " is loading indicator" : " has type " + super.getItemViewType(position)));
+        }
+
+        if (isLoadingIndicator) return LOADING_ITEM_VIEW_TYPE;
         else return super.getItemViewType(position);
     }
 
@@ -76,12 +91,25 @@ public abstract class LoadingMoreLiveAdapter<MDL>
     protected abstract LiveAdapter.ViewHolder<MDL> createMdlViewHolder(@NonNull ViewGroup parent, int viewType);
 
     @Override public final void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-        if (getItemViewType(position) == LOADING_ITEM_VIEW_TYPE) return; // no binding for loading VH
+        boolean isLoadingIndicator = holder.getItemViewType() == LOADING_ITEM_VIEW_TYPE;
+
+        if (isLoggingEnabled()) {
+            Log.d(toString(), "onBindViewHolder: binding " +
+                    (isLoadingIndicator ? "loading indicator" : holder.getClass().getSimpleName()) + " at " + position);
+        }
+
+        if (isLoadingIndicator) return; // no binding for loading VH
         super.onBindViewHolder(holder, position);
     }
 
     @Override public void onViewRecycled(RecyclerView.ViewHolder holder) {
-        if (holder.getItemViewType() == LOADING_ITEM_VIEW_TYPE) return;
+        boolean isLoadingIndicator = holder.getItemViewType() == LOADING_ITEM_VIEW_TYPE;
+        if (isLoggingEnabled()) {
+            Log.d(toString(),
+                    (isLoadingIndicator ? "loading indicator" : "holder with type #" + holder.getItemViewType()) +
+                            " has been recycled");
+        }
+        if (isLoadingIndicator) return;
         super.onViewRecycled(holder);
     }
 }

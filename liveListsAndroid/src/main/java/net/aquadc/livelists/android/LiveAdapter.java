@@ -3,6 +3,7 @@ package net.aquadc.livelists.android;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.util.DiffUtil;
+import android.support.v7.util.ListUpdateCallback;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -22,6 +23,8 @@ public abstract class LiveAdapter<
         MDL/* extends LiveDataLayer.WithId*/>
         extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
+    // todo: requires refactoring
+
     @Nullable private LiveList<? extends MDL> liveList;
     @Nullable private final LiveDataLayer.ListSubscriberWithPayload<MDL, DiffUtil.DiffResult> subscriber;
 
@@ -30,14 +33,14 @@ public abstract class LiveAdapter<
         this.subscriber = new LiveDataLayer.ListSubscriberWithPayload<MDL, DiffUtil.DiffResult>() {
 
             @Override public DiffUtil.DiffResult calculatePayload(
-                    final List<MDL> newList, final long[] newIds, final LongSet changedItemIds) {
+                    final List<? extends MDL> newList, final long[] newIds, final LongSet changedItemIds) {
                 final List<? extends MDL> oldList = list;
                 if (oldList == null) {
                     return null;
                 }
                 final long[] oldIds = ids;
 
-                if (logUpdates) {
+                if (logging) {
                     Log.d(LiveAdapter.this.toString(), "calculatePayload: " + changedItemIds);
                 }
 
@@ -45,7 +48,7 @@ public abstract class LiveAdapter<
                         new DiffUtilCallback<>(oldList, newList, oldIds, newIds, changedItemIds));
             }
             @Override public void onStructuralChange(
-                    List<MDL> newList, long[] newIds, LongSet changedItemIds, DiffUtil.DiffResult diff) {
+                    List<? extends MDL> newList, long[] newIds, LongSet changedItemIds, DiffUtil.DiffResult diff) {
 
                 list = newList;
                 ids = newIds;
@@ -63,6 +66,23 @@ public abstract class LiveAdapter<
                                 lm.getClass().getSimpleName() + " is not supported.");
                     }
 
+                    if (isLoggingEnabled()) {
+                        Log.d(LiveAdapter.this.toString(), "dispatching these updates:");
+                        diff.dispatchUpdatesTo(new ListUpdateCallback() {
+                            @Override public void onInserted(int position, int count) {
+                                Log.d(LiveAdapter.this.toString(), count + " items inserted at " + position);
+                            }
+                            @Override public void onRemoved(int position, int count) {
+                                Log.d(LiveAdapter.this.toString(), count + " items removed at " + position);
+                            }
+                            @Override public void onMoved(int fromPosition, int toPosition) {
+                                Log.d(LiveAdapter.this.toString(), "item moved from " + fromPosition + " to " + toPosition);
+                            }
+                            @Override public void onChanged(int position, int count, Object payload) {
+                                Log.d(LiveAdapter.this.toString(), count + " changed at " + position + ", payload: " + payload);
+                            }
+                        });
+                    }
                     diff.dispatchUpdatesTo(LiveAdapter.this);
 
                     if (pos != -1) {
@@ -70,7 +90,7 @@ public abstract class LiveAdapter<
                     }
                 }
 
-                if (logUpdates) {
+                if (logging) {
                     Log.d(LiveAdapter.this.toString(), "onStructuralChange: " + changedItemIds + ", " + diff);
                 }
             }
@@ -93,7 +113,7 @@ public abstract class LiveAdapter<
                             " are differ.");
                 }
 
-                if (logUpdates) {
+                if (logging) {
                     Log.d(LiveAdapter.this.toString(), "onChange: " + changedItemIds);
                 }
             }
@@ -134,11 +154,15 @@ public abstract class LiveAdapter<
 
     /*pkg*/ RecyclerView recycler;
 
-    private boolean logUpdates = false;
+    private boolean logging = false;
 
-    protected void logUpdates() {
-        Log.d(toString(), "updates logging enabled");
-        logUpdates = true;
+    protected void enableLogging() {
+        Log.d(toString(), "logging enabled");
+        logging = true;
+    }
+
+    protected boolean isLoggingEnabled() {
+        return logging;
     }
 
     private static final class DiffUtilCallback<MDL> extends DiffUtil.Callback {
